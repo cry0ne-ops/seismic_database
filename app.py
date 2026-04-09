@@ -15,60 +15,49 @@ st.set_page_config(page_title="Seismic Vulnerability Dashboard", layout="wide")
 st.title("🏢 Seismic Vulnerability Dashboard (LISTT Area)")
 
 # -----------------------------
-# SIDEBAR
+# CENTERED FILTER PANEL
 # -----------------------------
-st.sidebar.header("Selection Panel")
+st.markdown("### 🔍 Data Selection Panel")
 
-# STEP 1: Municipality (REQUIRED)
-municipalities = sorted(df["MUNICIPALITY"].dropna().unique())
-municipality = st.sidebar.selectbox(
-    "Step 1: Select Municipality",
-    ["Select Municipality"] + municipalities
-)
+col1, col2, col3 = st.columns(3)
 
-# STOP if not selected
-if municipality == "Select Municipality":
-    st.warning("⚠️ Please select a Municipality to proceed.")
-    st.stop()
+with col1:
+    show_all = st.checkbox("Show All Data")
 
-# STEP 2: Barangay (based on municipality)
-barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
+with col2:
+    municipalities = ["All"] + sorted(df["MUNICIPALITY"].dropna().unique())
+    municipality = st.selectbox("Select Municipality", municipalities)
 
-barangay = st.sidebar.selectbox(
-    "Step 2: Select Barangay",
-    ["Select Barangay"] + sorted(barangays)
-)
+with col3:
+    if municipality != "All":
+        barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
+    else:
+        barangays = df["BARANGAY HALL"].dropna().unique()
 
-# STOP if not selected
-if barangay == "Select Barangay":
-    st.warning("⚠️ Please select a Barangay to view data.")
-    st.stop()
-
-# STEP 3: Code (optional but automatic)
-codes = df[df["BARANGAY HALL"] == barangay]["CODE"].dropna().unique()
-
-code = st.sidebar.selectbox(
-    "Step 3: Select Barangay Code (Optional)",
-    ["All"] + list(codes)
-)
+    barangay = st.selectbox("Select Barangay", ["All"] + sorted(barangays))
 
 # -----------------------------
-# FILTERING
+# FILTER LOGIC
 # -----------------------------
-filtered_df = df[
-    (df["MUNICIPALITY"] == municipality) &
-    (df["BARANGAY HALL"] == barangay)
-]
+if show_all:
+    filtered_df = df.copy()
 
-if code != "All":
-    filtered_df = filtered_df[filtered_df["CODE"] == code]
+else:
+    if municipality == "All" and barangay == "All":
+        st.info("👆 Please select a Municipality or enable 'Show All Data'")
+        st.stop()
+
+    filtered_df = df.copy()
+
+    if municipality != "All":
+        filtered_df = filtered_df[filtered_df["MUNICIPALITY"] == municipality]
+
+    if barangay != "All":
+        filtered_df = filtered_df[filtered_df["BARANGAY HALL"] == barangay]
 
 # -----------------------------
-# DISPLAY
-# -----------------------------
-st.success(f"Showing data for {barangay}, {municipality}")
-
 # METRICS
+# -----------------------------
 st.subheader("📊 Overview")
 
 col1, col2, col3 = st.columns(3)
@@ -78,20 +67,24 @@ col1.metric("Total Records", len(filtered_df))
 avg_score = filtered_df["RVS SCORE"].mean()
 col2.metric("Average RVS Score", round(avg_score, 2) if pd.notnull(avg_score) else "N/A")
 
-col3.metric("Risk Level", filtered_df["INTERPRETATION"].iloc[0] if len(filtered_df) > 0 else "N/A")
+col3.metric("Municipalities", filtered_df["MUNICIPALITY"].nunique())
 
+# -----------------------------
 # TABLE
+# -----------------------------
 st.subheader("📋 Data Table")
 st.dataframe(filtered_df, use_container_width=True)
 
+# -----------------------------
 # CHART
+# -----------------------------
 st.subheader("📊 Risk Distribution")
 st.bar_chart(filtered_df["INTERPRETATION"].value_counts())
 
 # -----------------------------
-# DETAILED VIEW
+# DETAIL VIEW (IF SINGLE)
 # -----------------------------
-if len(filtered_df) > 0:
+if len(filtered_df) == 1:
     st.subheader("📍 Detailed Information")
 
     row = filtered_df.iloc[0]
@@ -101,4 +94,3 @@ if len(filtered_df) > 0:
     st.write(f"**RVS Score:** {row['RVS SCORE']}")
     st.write(f"**Risk Level:** {row['INTERPRETATION']}")
     st.write(f"**Building Type:** {row['BUILDING TYPE']}")
-    st.write(f"**Year Built:** {row['YEAR BUILT']}")
