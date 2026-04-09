@@ -68,10 +68,7 @@ df["PROVINCE"] = "Benguet"
 # -----------------------------
 # HEADER
 # -----------------------------
-st.markdown("### Republic of the Philippines")
 st.title("Barangay Seismic Vulnerability Records System")
-st.caption("Province of Benguet | LISTT Area")
-
 st.markdown("---")
 
 # -----------------------------
