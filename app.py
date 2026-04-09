@@ -1,12 +1,8 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 
-# Connect to database
-conn = sqlite3.connect("seismic_database.db")
-
-# Load data
-df = pd.read_sql("SELECT * FROM barangay_halls", conn)
+# Load Excel instead of DB
+df = pd.read_excel("cleaned_full_seismic_dataset.xlsx")
 
 st.set_page_config(page_title="Seismic Vulnerability Dashboard", layout="wide")
 
@@ -17,38 +13,36 @@ st.sidebar.header("Filter Options")
 
 municipality = st.sidebar.selectbox(
     "Select Municipality",
-    ["All"] + list(df["municipality"].dropna().unique())
+    ["All"] + list(df["MUNICIPALITY"].dropna().unique())
 )
 
 risk = st.sidebar.selectbox(
     "Select Risk Level",
-    ["All"] + list(df["interpretation"].dropna().unique())
+    ["All"] + list(df["INTERPRETATION"].dropna().unique())
 )
 
-# Apply filters
+# Filtering
 filtered_df = df.copy()
 
 if municipality != "All":
-    filtered_df = filtered_df[filtered_df["municipality"] == municipality]
+    filtered_df = filtered_df[filtered_df["MUNICIPALITY"] == municipality]
 
 if risk != "All":
-    filtered_df = filtered_df[filtered_df["interpretation"] == risk]
+    filtered_df = filtered_df[filtered_df["INTERPRETATION"] == risk]
 
-# Show metrics
+# Metrics
 st.subheader("📊 Overview")
 
 col1, col2, col3 = st.columns(3)
 
 col1.metric("Total Barangays", len(filtered_df))
-col2.metric("Average RVS Score", round(filtered_df["rvs_score"].mean(), 2))
-col3.metric("Municipalities", filtered_df["municipality"].nunique())
+col2.metric("Average RVS Score", round(pd.to_numeric(filtered_df["RVS SCORE"], errors='coerce').mean(), 2))
+col3.metric("Municipalities", filtered_df["MUNICIPALITY"].nunique())
 
-# Show table
+# Table
 st.subheader("📋 Data Table")
 st.dataframe(filtered_df)
 
 # Chart
 st.subheader("📊 Risk Distribution")
-st.bar_chart(filtered_df["interpretation"].value_counts())
-
-conn.close()
+st.bar_chart(filtered_df["INTERPRETATION"].value_counts())
