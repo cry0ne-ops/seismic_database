@@ -1,55 +1,5 @@
-import streamlit as st
-import pandas as pd
-
 # -----------------------------
-# LOAD DATA
-# -----------------------------
-df = pd.read_excel("cleaned_full_seismic_dataset.xlsx")
-df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors='coerce')
-
-# ADD PROVINCE COLUMN
-df["PROVINCE"] = "Benguet"
-
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
-st.set_page_config(page_title="Barangay Records Search System", layout="wide")
-
-st.title("📄 Barangay Seismic Records Search System")
-st.markdown("Search official records of barangay halls in LISTT area.")
-
-# -----------------------------
-# SEARCH PANEL (CENTERED)
-# -----------------------------
-st.markdown("### 🔍 Search Records")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    provinces = sorted(df["PROVINCE"].unique())
-    province = st.selectbox("Select Province", ["Select Province"] + provinces)
-
-with col2:
-    if province != "Select Province":
-        municipalities = df[df["PROVINCE"] == province]["MUNICIPALITY"].dropna().unique()
-    else:
-        municipalities = []
-
-    municipality = st.selectbox("Select Municipality", ["Select Municipality"] + sorted(municipalities))
-
-with col3:
-    if municipality != "Select Municipality":
-        barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
-    else:
-        barangays = []
-
-    barangay = st.selectbox("Select Barangay", ["Select Barangay"] + sorted(barangays))
-
-# SEARCH BUTTON
-search = st.button("🔎 Search")
-
-# -----------------------------
-# SEARCH LOGIC
+# SEARCH RESULT DISPLAY
 # -----------------------------
 if search:
 
@@ -62,41 +12,72 @@ if search:
             (df["BARANGAY HALL"] == barangay)
         ]
 
-        st.success(f"Showing results for {barangay}, {municipality}, {province}")
-
-        # -----------------------------
-        # METRICS
-        # -----------------------------
-        st.subheader("📊 Summary")
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Records Found", len(filtered_df))
-
-        avg_score = filtered_df["RVS SCORE"].mean()
-        col2.metric("RVS Score", round(avg_score, 2) if pd.notnull(avg_score) else "N/A")
-
-        col3.metric("Risk Level", filtered_df["INTERPRETATION"].iloc[0])
-
-        # -----------------------------
-        # DETAILS
-        # -----------------------------
-        st.subheader("📋 Record Details")
-
-        st.dataframe(filtered_df, use_container_width=True)
-
-        # -----------------------------
-        # DETAILED VIEW
-        # -----------------------------
-        if len(filtered_df) > 0:
+        if len(filtered_df) == 0:
+            st.warning("No data found.")
+        else:
             row = filtered_df.iloc[0]
 
-            st.subheader("📍 Detailed Information")
+            st.success(f"📄 Record for {barangay}, {municipality}")
 
-            st.write(f"**Barangay:** {row['BARANGAY HALL']}")
-            st.write(f"**Municipality:** {row['MUNICIPALITY']}")
-            st.write(f"**Province:** {row['PROVINCE']}")
-            st.write(f"**RVS Score:** {row['RVS SCORE']}")
-            st.write(f"**Risk Level:** {row['INTERPRETATION']}")
-            st.write(f"**Building Type:** {row['BUILDING TYPE']}")
-            st.write(f"**Year Built:** {row['YEAR BUILT']}")
+            # -----------------------------
+            # GENERAL INFORMATION
+            # -----------------------------
+            st.markdown("## 📌 GENERAL INFORMATION")
+
+            st.write(f"**Name of Barangay Hall:** {row.get('BARANGAY HALL', 'N/A')}")
+            st.write(f"**Municipality:** {row.get('MUNICIPALITY', 'N/A')}")
+            st.write(f"**Zip Code:** N/A")
+            st.write(f"**Longitude and Latitude:** N/A")
+            st.write(f"**SS and S1:** N/A")
+
+            st.write(f"**No. of Stories:**")
+            st.write(f"• Above Grade: {row.get('NO. OF STORIES ABOVE GRADE', 'N/A')}")
+            st.write(f"• Below Grade: {row.get('NO. OF STORIES BELOW GRADE', 'N/A')}")
+
+            st.write(f"**Year Built:** {row.get('YEAR BUILT', 'N/A')}")
+            st.write(f"**Code Year:** {'Pre-Code' if row.get('PRE-CODE') == 'Yes' else 'Post-Benchmark'}")
+            st.write(f"**Total Floor Area:** {row.get('TOTAL FLOOR AREA', 'N/A')}")
+            st.write(f"**Occupancy:** {row.get('OCCUPANCY', 'N/A')}")
+            st.write(f"**Soil Type:** {row.get('SOIL TYPE', 'N/A')}")
+            st.write(f"**FEMA Building Type:** {row.get('BUILDING TYPE', 'N/A')}")
+
+            # -----------------------------
+            # HAZARDS AND IRREGULARITIES
+            # -----------------------------
+            st.markdown("## ⚠️ HAZARDS AND IRREGULARITIES")
+
+            st.write(f"**Geologic Hazards:** {row.get('GEOLOGIC HAZARD', 'N/A')}")
+            st.write(f"**Exterior Falling Hazards:** {row.get('EXTERIOR FALLING HAZARDS', 'N/A')}")
+            st.write(f"**Plan Irregularities:** {row.get('PLAN IRREGULARITY', 'N/A')}")
+            st.write(f"**Vertical Irregularities:** {row.get('VERTICAL IRREGULARITY', 'N/A')}")
+            st.write(f"**Adjacency:** {row.get('ADJACENCY', 'N/A')}")
+
+            # -----------------------------
+            # PHOTO & SKETCH
+            # -----------------------------
+            st.markdown("## 🖼️ PHOTO AND SKETCH OF THE STRUCTURE")
+
+            st.info("📌 Upload or link images here (to be added later)")
+
+            # Example (future)
+            # st.image("images/sample.jpg")
+
+            # -----------------------------
+            # RVS RESULT
+            # -----------------------------
+            st.markdown("## 📊 RAPID VISUAL SCREENING RESULT")
+
+            score = row.get("RVS SCORE", "N/A")
+            interpretation = row.get("INTERPRETATION", "N/A")
+
+            st.write(f"**Score:** {score}")
+
+            # Highlight interpretation
+            if interpretation == "Low Vulnerability":
+                st.success(f"🟢 {interpretation}")
+            elif interpretation == "Moderate Vulnerability":
+                st.warning(f"🟡 {interpretation}")
+            elif interpretation == "High Vulnerability":
+                st.error(f"🔴 {interpretation}")
+            else:
+                st.write(interpretation)
