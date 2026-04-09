@@ -10,29 +10,51 @@ st.set_page_config(
 )
 
 # -----------------------------
-# MINIMAL CSS
+# CUSTOM CSS (CLEAN + MODERN)
 # -----------------------------
 st.markdown("""
 <style>
-body {
-    background-color: #ffffff;
+/* Center content */
+.block-container {
+    max-width: 900px;
+    padding-top: 2rem;
 }
 
+/* Typography */
 h1 {
     color: #1f4e79;
     text-align: center;
+    font-weight: 600;
 }
 
 h2 {
     color: #1f4e79;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 5px;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
-.section {
-    padding: 15px 0;
+/* Cards */
+.card {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 15px;
 }
 
+/* Search box */
+.search-box {
+    background-color: #f9fafb;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+}
+
+/* Labels */
+label {
+    font-weight: 500 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,15 +68,17 @@ df["PROVINCE"] = "Benguet"
 # -----------------------------
 # HEADER
 # -----------------------------
+st.markdown("### Republic of the Philippines")
 st.title("Barangay Seismic Vulnerability Records System")
 st.caption("Province of Benguet | LISTT Area")
 
-st.divider()
+st.markdown("---")
 
 # -----------------------------
-# SEARCH SECTION
+# SEARCH PANEL
 # -----------------------------
-st.markdown("## 🔍 Search Barangay Record")
+st.markdown('<div class="search-box">', unsafe_allow_html=True)
+st.markdown("### 🔍 Search Barangay Record")
 
 col1, col2, col3 = st.columns(3)
 
@@ -73,9 +97,9 @@ with col3:
 
     barangay = st.selectbox("Barangay", ["Select"] + sorted(barangays))
 
-search = st.button("Search")
+search = st.button("Search", use_container_width=True)
 
-st.divider()
+st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------
 # RESULT
@@ -91,8 +115,9 @@ if search:
         ].iloc[0]
 
         # -----------------------------
-        # GENERAL INFORMATION
+        # GENERAL INFO CARD
         # -----------------------------
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown("## General Information")
 
         col1, col2 = st.columns(2)
@@ -102,19 +127,19 @@ if search:
             st.write("**Municipality:**", row.get("MUNICIPALITY", "N/A"))
             st.write("**Year Built:**", row.get("YEAR BUILT", "N/A"))
             st.write("**Occupancy:**", row.get("OCCUPANCY", "N/A"))
-            st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
 
         with col2:
             st.write("**Stories Above Grade:**", row.get("NO. OF STORIES ABOVE GRADE", "N/A"))
             st.write("**Stories Below Grade:**", row.get("NO. OF STORIES BELOW GRADE", "N/A"))
-            st.write("**Floor Area:**", row.get("TOTAL FLOOR AREA", "N/A"))
+            st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
             st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
 
-        st.divider()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # -----------------------------
-        # HAZARDS
+        # HAZARDS CARD
         # -----------------------------
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown("## Hazards and Irregularities")
 
         st.write("**Geologic Hazards:**", row.get("GEOLOGIC HAZARD", "N/A"))
@@ -123,12 +148,13 @@ if search:
         st.write("**Vertical Irregularities:**", row.get("VERTICAL IRREGULARITY", "N/A"))
         st.write("**Adjacency:**", row.get("ADJACENCY", "N/A"))
 
-        st.divider()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # -----------------------------
-        # RVS RESULT
+        # RVS CARD
         # -----------------------------
-        st.markdown("## RVS Result")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("## RVS Assessment")
 
         score = row.get("RVS SCORE", "N/A")
         interpretation = row.get("INTERPRETATION", "N/A")
@@ -143,3 +169,5 @@ if search:
             st.error(interpretation)
         else:
             st.write(interpretation)
+
+        st.markdown('</div>', unsafe_allow_html=True)
