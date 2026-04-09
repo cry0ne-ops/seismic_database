@@ -7,90 +7,96 @@ import pandas as pd
 df = pd.read_excel("cleaned_full_seismic_dataset.xlsx")
 df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors='coerce')
 
+# ADD PROVINCE COLUMN
+df["PROVINCE"] = "Benguet"
+
 # -----------------------------
 # PAGE CONFIG
 # -----------------------------
-st.set_page_config(page_title="Seismic Vulnerability Dashboard", layout="wide")
+st.set_page_config(page_title="Barangay Records Search System", layout="wide")
 
-st.title("🏢 Seismic Vulnerability Dashboard (LISTT Area)")
+st.title("📄 Barangay Seismic Records Search System")
+st.markdown("Search official records of barangay halls in LISTT area.")
 
 # -----------------------------
-# CENTERED FILTER PANEL
+# SEARCH PANEL (CENTERED)
 # -----------------------------
-st.markdown("### 🔍 Data Selection Panel")
+st.markdown("### 🔍 Search Records")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    show_all = st.checkbox("Show All Data")
+    provinces = sorted(df["PROVINCE"].unique())
+    province = st.selectbox("Select Province", ["Select Province"] + provinces)
 
 with col2:
-    municipalities = ["All"] + sorted(df["MUNICIPALITY"].dropna().unique())
-    municipality = st.selectbox("Select Municipality", municipalities)
+    if province != "Select Province":
+        municipalities = df[df["PROVINCE"] == province]["MUNICIPALITY"].dropna().unique()
+    else:
+        municipalities = []
+
+    municipality = st.selectbox("Select Municipality", ["Select Municipality"] + sorted(municipalities))
 
 with col3:
-    if municipality != "All":
+    if municipality != "Select Municipality":
         barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
     else:
-        barangays = df["BARANGAY HALL"].dropna().unique()
+        barangays = []
 
-    barangay = st.selectbox("Select Barangay", ["All"] + sorted(barangays))
+    barangay = st.selectbox("Select Barangay", ["Select Barangay"] + sorted(barangays))
 
-# -----------------------------
-# FILTER LOGIC
-# -----------------------------
-if show_all:
-    filtered_df = df.copy()
-
-else:
-    if municipality == "All" and barangay == "All":
-        st.info("👆 Please select a Municipality or enable 'Show All Data'")
-        st.stop()
-
-    filtered_df = df.copy()
-
-    if municipality != "All":
-        filtered_df = filtered_df[filtered_df["MUNICIPALITY"] == municipality]
-
-    if barangay != "All":
-        filtered_df = filtered_df[filtered_df["BARANGAY HALL"] == barangay]
+# SEARCH BUTTON
+search = st.button("🔎 Search")
 
 # -----------------------------
-# METRICS
+# SEARCH LOGIC
 # -----------------------------
-st.subheader("📊 Overview")
+if search:
 
-col1, col2, col3 = st.columns(3)
+    if province == "Select Province" or municipality == "Select Municipality" or barangay == "Select Barangay":
+        st.error("⚠️ Please complete all selections before searching.")
+    else:
+        filtered_df = df[
+            (df["PROVINCE"] == province) &
+            (df["MUNICIPALITY"] == municipality) &
+            (df["BARANGAY HALL"] == barangay)
+        ]
 
-col1.metric("Total Records", len(filtered_df))
+        st.success(f"Showing results for {barangay}, {municipality}, {province}")
 
-avg_score = filtered_df["RVS SCORE"].mean()
-col2.metric("Average RVS Score", round(avg_score, 2) if pd.notnull(avg_score) else "N/A")
+        # -----------------------------
+        # METRICS
+        # -----------------------------
+        st.subheader("📊 Summary")
 
-col3.metric("Municipalities", filtered_df["MUNICIPALITY"].nunique())
+        col1, col2, col3 = st.columns(3)
 
-# -----------------------------
-# TABLE
-# -----------------------------
-st.subheader("📋 Data Table")
-st.dataframe(filtered_df, use_container_width=True)
+        col1.metric("Records Found", len(filtered_df))
 
-# -----------------------------
-# CHART
-# -----------------------------
-st.subheader("📊 Risk Distribution")
-st.bar_chart(filtered_df["INTERPRETATION"].value_counts())
+        avg_score = filtered_df["RVS SCORE"].mean()
+        col2.metric("RVS Score", round(avg_score, 2) if pd.notnull(avg_score) else "N/A")
 
-# -----------------------------
-# DETAIL VIEW (IF SINGLE)
-# -----------------------------
-if len(filtered_df) == 1:
-    st.subheader("📍 Detailed Information")
+        col3.metric("Risk Level", filtered_df["INTERPRETATION"].iloc[0])
 
-    row = filtered_df.iloc[0]
+        # -----------------------------
+        # DETAILS
+        # -----------------------------
+        st.subheader("📋 Record Details")
 
-    st.write(f"**Barangay:** {row['BARANGAY HALL']}")
-    st.write(f"**Municipality:** {row['MUNICIPALITY']}")
-    st.write(f"**RVS Score:** {row['RVS SCORE']}")
-    st.write(f"**Risk Level:** {row['INTERPRETATION']}")
-    st.write(f"**Building Type:** {row['BUILDING TYPE']}")
+        st.dataframe(filtered_df, use_container_width=True)
+
+        # -----------------------------
+        # DETAILED VIEW
+        # -----------------------------
+        if len(filtered_df) > 0:
+            row = filtered_df.iloc[0]
+
+            st.subheader("📍 Detailed Information")
+
+            st.write(f"**Barangay:** {row['BARANGAY HALL']}")
+            st.write(f"**Municipality:** {row['MUNICIPALITY']}")
+            st.write(f"**Province:** {row['PROVINCE']}")
+            st.write(f"**RVS Score:** {row['RVS SCORE']}")
+            st.write(f"**Risk Level:** {row['INTERPRETATION']}")
+            st.write(f"**Building Type:** {row['BUILDING TYPE']}")
+            st.write(f"**Year Built:** {row['YEAR BUILT']}")
