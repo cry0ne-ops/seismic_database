@@ -5,50 +5,83 @@ import pandas as pd
 # PAGE CONFIG
 # -----------------------------
 st.set_page_config(
-    page_title="Barangay Seismic Records",
+    page_title="Seismic Vulnerability System",
     layout="wide"
 )
 
 # -----------------------------
-# CUSTOM CSS (CLEAN + MODERN)
+# MODERN CSS + ANIMATIONS
 # -----------------------------
 st.markdown("""
 <style>
 /* Center content */
 .block-container {
-    max-width: 900px;
+    max-width: 850px;
     padding-top: 2rem;
 }
 
-/* Typography */
+/* Font */
+html, body, [class*="css"] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Fade animation */
+.fade-in {
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+/* Header */
 h1 {
-    color: #1f4e79;
-    text-align: center;
+    font-size: 2.2rem;
     font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.2em;
 }
 
-h2 {
-    color: #1f4e79;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-/* Cards */
-.card {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    margin-bottom: 15px;
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 2rem;
 }
 
 /* Search box */
 .search-box {
-    background-color: #f9fafb;
-    padding: 20px;
-    border-radius: 10px;
+    background: #ffffff;
+    padding: 22px;
+    border-radius: 14px;
     border: 1px solid #e5e7eb;
     margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+.search-box:hover {
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.06);
+}
+
+/* Cards */
+.card {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.06);
+}
+
+/* Section titles */
+.section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 10px;
 }
 
 /* Labels */
@@ -63,38 +96,37 @@ label {
 # -----------------------------
 df = pd.read_excel("cleaned_full_seismic_dataset.xlsx")
 df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors='coerce')
-df["PROVINCE"] = "Benguet"
 
 # -----------------------------
 # HEADER
 # -----------------------------
-st.title("Barangay Seismic Vulnerability Records System")
-st.markdown("---")
+st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+st.markdown("<h1>📊 Seismic Vulnerability Records</h1>", unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Search and explore barangay structural assessment data</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------
 # SEARCH PANEL
 # -----------------------------
-st.markdown('<div class="search-box">', unsafe_allow_html=True)
-st.markdown("### 🔍 Search Barangay Record")
+st.markdown('<div class="search-box fade-in">', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    province = st.selectbox("Province", ["Benguet"])
+    municipalities = sorted(df["MUNICIPALITY"].dropna().unique())
+    municipality = st.selectbox("📍 Municipality", ["Select"] + municipalities)
 
 with col2:
-    municipalities = sorted(df["MUNICIPALITY"].dropna().unique())
-    municipality = st.selectbox("Municipality", ["Select"] + municipalities)
-
-with col3:
     if municipality != "Select":
         barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
     else:
         barangays = []
 
-    barangay = st.selectbox("Barangay", ["Select"] + sorted(barangays))
+    barangay = st.selectbox("🏘️ Barangay", ["Select"] + sorted(barangays))
 
-search = st.button("Search", use_container_width=True)
+with col3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    search = st.button("🔍 Search", use_container_width=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -104,7 +136,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 if search:
 
     if municipality == "Select" or barangay == "Select":
-        st.warning("Please select Municipality and Barangay.")
+        st.warning("⚠️ Please complete all fields.")
     else:
         row = df[
             (df["MUNICIPALITY"] == municipality) &
@@ -112,35 +144,35 @@ if search:
         ].iloc[0]
 
         # -----------------------------
-        # GENERAL INFO CARD
+        # GENERAL INFO
         # -----------------------------
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("## General Information")
+        st.markdown('<div class="card fade-in">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📌 General Information</div>', unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
 
         with col1:
-            st.write("**Barangay Hall:**", row.get("BARANGAY HALL", "N/A"))
+            st.write("**Barangay:**", row.get("BARANGAY HALL", "N/A"))
             st.write("**Municipality:**", row.get("MUNICIPALITY", "N/A"))
             st.write("**Year Built:**", row.get("YEAR BUILT", "N/A"))
             st.write("**Occupancy:**", row.get("OCCUPANCY", "N/A"))
 
         with col2:
-            st.write("**Stories Above Grade:**", row.get("NO. OF STORIES ABOVE GRADE", "N/A"))
-            st.write("**Stories Below Grade:**", row.get("NO. OF STORIES BELOW GRADE", "N/A"))
+            st.write("**Stories Above:**", row.get("NO. OF STORIES ABOVE GRADE", "N/A"))
+            st.write("**Stories Below:**", row.get("NO. OF STORIES BELOW GRADE", "N/A"))
             st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
             st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
 
         st.markdown('</div>', unsafe_allow_html=True)
 
         # -----------------------------
-        # HAZARDS CARD
+        # HAZARDS
         # -----------------------------
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("## Hazards and Irregularities")
+        st.markdown('<div class="card fade-in">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">⚠️ Hazards & Irregularities</div>', unsafe_allow_html=True)
 
         st.write("**Geologic Hazards:**", row.get("GEOLOGIC HAZARD", "N/A"))
-        st.write("**Exterior Falling Hazards:**", row.get("EXTERIOR FALLING HAZARDS", "N/A"))
+        st.write("**Exterior Hazards:**", row.get("EXTERIOR FALLING HAZARDS", "N/A"))
         st.write("**Plan Irregularities:**", row.get("PLAN IRREGULARITY", "N/A"))
         st.write("**Vertical Irregularities:**", row.get("VERTICAL IRREGULARITY", "N/A"))
         st.write("**Adjacency:**", row.get("ADJACENCY", "N/A"))
@@ -148,22 +180,22 @@ if search:
         st.markdown('</div>', unsafe_allow_html=True)
 
         # -----------------------------
-        # RVS CARD
+        # RVS RESULT
         # -----------------------------
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown("## RVS Assessment")
+        st.markdown('<div class="card fade-in">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">📊 Assessment Result</div>', unsafe_allow_html=True)
 
         score = row.get("RVS SCORE", "N/A")
         interpretation = row.get("INTERPRETATION", "N/A")
 
-        st.write("**Score:**", score)
+        st.metric("RVS Score", score)
 
         if interpretation == "Low Vulnerability":
-            st.success(interpretation)
+            st.success(f"🟢 {interpretation}")
         elif interpretation == "Moderate Vulnerability":
-            st.warning(interpretation)
+            st.warning(f"🟡 {interpretation}")
         elif interpretation == "High Vulnerability":
-            st.error(interpretation)
+            st.error(f"🔴 {interpretation}")
         else:
             st.write(interpretation)
 
