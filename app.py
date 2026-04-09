@@ -1,5 +1,58 @@
+import streamlit as st
+import pandas as pd
+
 # -----------------------------
-# SEARCH RESULT DISPLAY
+# LOAD DATA
+# -----------------------------
+df = pd.read_excel("cleaned_full_seismic_dataset.xlsx")
+df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors='coerce')
+
+# Add Province (since dataset is LISTT only)
+df["PROVINCE"] = "Benguet"
+
+# -----------------------------
+# PAGE CONFIG
+# -----------------------------
+st.set_page_config(page_title="Barangay Seismic Records System", layout="wide")
+
+st.title("📄 Barangay Seismic Records Search System")
+st.markdown("Official database of seismic vulnerability of barangay halls in LISTT area.")
+
+# -----------------------------
+# SEARCH PANEL
+# -----------------------------
+st.markdown("## 🔍 Search Records")
+
+col1, col2, col3 = st.columns(3)
+
+# Province
+with col1:
+    provinces = sorted(df["PROVINCE"].unique())
+    province = st.selectbox("Select Province", ["Select Province"] + provinces)
+
+# Municipality
+with col2:
+    if province != "Select Province":
+        municipalities = df[df["PROVINCE"] == province]["MUNICIPALITY"].dropna().unique()
+    else:
+        municipalities = []
+
+    municipality = st.selectbox("Select Municipality", ["Select Municipality"] + sorted(municipalities))
+
+# Barangay
+with col3:
+    if municipality != "Select Municipality":
+        barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
+    else:
+        barangays = []
+
+    barangay = st.selectbox("Select Barangay", ["Select Barangay"] + sorted(barangays))
+
+# Search Button
+search = st.button("🔎 Search")
+
+# -----------------------------
+# SEARCH RESULT
 # -----------------------------
 if search:
 
@@ -17,7 +70,7 @@ if search:
         else:
             row = filtered_df.iloc[0]
 
-            st.success(f"📄 Record for {barangay}, {municipality}")
+            st.success(f"📄 Record for {barangay}, {municipality}, {province}")
 
             # -----------------------------
             # GENERAL INFORMATION
@@ -30,7 +83,7 @@ if search:
             st.write(f"**Longitude and Latitude:** N/A")
             st.write(f"**SS and S1:** N/A")
 
-            st.write(f"**No. of Stories:**")
+            st.write("**No. of Stories:**")
             st.write(f"• Above Grade: {row.get('NO. OF STORIES ABOVE GRADE', 'N/A')}")
             st.write(f"• Below Grade: {row.get('NO. OF STORIES BELOW GRADE', 'N/A')}")
 
@@ -42,7 +95,7 @@ if search:
             st.write(f"**FEMA Building Type:** {row.get('BUILDING TYPE', 'N/A')}")
 
             # -----------------------------
-            # HAZARDS AND IRREGULARITIES
+            # HAZARDS
             # -----------------------------
             st.markdown("## ⚠️ HAZARDS AND IRREGULARITIES")
 
@@ -53,14 +106,11 @@ if search:
             st.write(f"**Adjacency:** {row.get('ADJACENCY', 'N/A')}")
 
             # -----------------------------
-            # PHOTO & SKETCH
+            # PHOTO SECTION
             # -----------------------------
             st.markdown("## 🖼️ PHOTO AND SKETCH OF THE STRUCTURE")
 
-            st.info("📌 Upload or link images here (to be added later)")
-
-            # Example (future)
-            # st.image("images/sample.jpg")
+            st.info("📌 Image integration can be added here (future enhancement)")
 
             # -----------------------------
             # RVS RESULT
@@ -72,7 +122,6 @@ if search:
 
             st.write(f"**Score:** {score}")
 
-            # Highlight interpretation
             if interpretation == "Low Vulnerability":
                 st.success(f"🟢 {interpretation}")
             elif interpretation == "Moderate Vulnerability":
