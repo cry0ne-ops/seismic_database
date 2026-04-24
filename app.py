@@ -162,9 +162,6 @@ def generate_pdf(row):
     fields = [
         ("Name of Barangay Hall", get_value(row, "BARANGAY HALL")),
         ("Municipality", get_value(row, "MUNICIPALITY")),
-        ("Zip Code", get_value(row, "ZIP CODE")),
-        ("Longitude and Latitude", f"{get_value(row, 'LONGITUDE')}, {get_value(row, 'LATITUDE')}"),
-        ("SS and S1", f"{get_value(row, 'SS')} / {get_value(row, 'S1')}"),
         ("Above Grade Stories", get_value(row, "ABOVE GRADE")),
         ("Below Grade Stories", get_value(row, "BELOW GRADE")),
         ("Year Built", get_value(row, "YEAR BUILT")),
@@ -356,9 +353,6 @@ elif st.session_state.page == "Search":
 
                 st.write(f"• **Name of Barangay Hall:** {get_value(row, 'BARANGAY HALL')}")
                 st.write(f"• **Municipality:** {get_value(row, 'MUNICIPALITY')}")
-                st.write(f"• **Zip Code:** {get_value(row, 'ZIP CODE')}")
-                st.write(f"• **Longitude and Latitude:** {get_value(row, 'LONGITUDE')}, {get_value(row, 'LATITUDE')}")
-                st.write(f"• **SS and S1:** {get_value(row, 'SS')} / {get_value(row, 'S1')}")
 
                 st.write(f"  No. of Stories: {get_value(row, 'NO. OF STORIES')}")
                 st.write(f"  Above Grade: {get_value(row, 'ABOVE GRADE')}")
