@@ -436,12 +436,48 @@ elif st.session_state.page == "Search":
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("RAPID VISUAL SCREENING RESULT")
 
-                # -----------------------------
-                # OVERALL RESULT SUMMARY
-                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Overall Result Summary")
-                st.write(
+st.subheader("RAPID VISUAL SCREENING RESULT")
+
+# --- GET VALUES FIRST ---
+barangay_name = get_value(row, "BARANGAY HALL")
+municipality_name = get_value(row, "MUNICIPALITY")
+rvs_score = get_value(row, "RVS SCORE")
+vulnerability = str(get_value(row, "VULNERABILITY")).strip()
+damage_grade = get_value(row, "GRADE OF DAMAGEABILITY")
+rank = get_value(row, "RANK")
+
+geologic_hazard = get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")
+exterior_hazard = get_value(row, "EXTERIOR FALLING HAZARDS")
+plan_irregularity = get_value(row, "PLAN IRREGULARITY")
+vertical_irregularity = get_value(row, "VERTICAL IRREGULARITY")
+adjacency = get_value(row, "ADJACENCY")
+
+# --- BASIC RESULT DISPLAY ---
+st.write("**Score:**", rvs_score)
+st.write("**Vulnerability:**", vulnerability)
+st.write("**Interpretation:**", get_value(row, "INTERPRETATION"))
+st.write("**Grade of Damageability:**", damage_grade)
+
+# --- COLOR STATUS ---
+if "LOW" in vulnerability.upper():
+    st.success(f"🟢 {vulnerability}")
+elif "MODERATE" in vulnerability.upper():
+    st.warning(f"🟡 {vulnerability}")
+elif "HIGH" in vulnerability.upper():
+    st.error(f"🔴 {vulnerability}")
+else:
+    st.info(vulnerability)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ==================================================
+# OVERALL RESULT SUMMARY (FIXED)
+# ==================================================
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("Overall Result Summary")
+
+st.write(
     f"The **{barangay_name} Barangay Hall** located in **{municipality_name}** "
     f"was assessed using Rapid Visual Screening (RVS). "
     f"The structure obtained an **RVS Score of {rvs_score}**, classified as "
@@ -449,7 +485,7 @@ elif st.session_state.page == "Search":
     f"a priority rank of **{rank}**."
 )
 
-                st.write(
+st.write(
     f"Based on the recorded hazards and irregularities, the structure is associated with "
     f"the following conditions: **Geologic Hazard:** {geologic_hazard}, "
     f"**Exterior Falling Hazards:** {exterior_hazard}, "
@@ -458,60 +494,28 @@ elif st.session_state.page == "Search":
     f"**Adjacency:** {adjacency}."
 )
 
+# --- FINAL RECOMMENDATION ---
 if "LOW" in vulnerability.upper():
     st.success(
         "Overall, this barangay hall shows relatively low seismic vulnerability. "
-        "Detailed structural evaluation may not be immediately required, but regular monitoring is still recommended."
+        "Detailed structural evaluation may not be immediately required, but regular monitoring is recommended."
     )
 elif "MODERATE" in vulnerability.upper():
     st.warning(
         "Overall, this barangay hall shows moderate seismic vulnerability. "
-        "Further structural evaluation is recommended to verify safety and determine possible strengthening measures."
+        "Further structural evaluation is recommended to verify safety and determine strengthening measures."
     )
 elif "HIGH" in vulnerability.upper():
     st.error(
         "Overall, this barangay hall shows high seismic vulnerability. "
-        "It should be prioritized for urgent detailed structural evaluation and possible structural intervention."
+        "It should be prioritized for urgent detailed structural evaluation and possible intervention."
     )
 else:
     st.info(
-        "The vulnerability classification requires further review due to incomplete or unavailable recorded information."
+        "The vulnerability classification requires further review due to incomplete data."
     )
 
-st.markdown('</div>', unsafe_allow_html=True)
-
-vulnerability = str(get_value(row, "VULNERABILITY")).strip()
-
-                st.write("**Score:**", get_value(row, "RVS SCORE"))
-                st.write("**Vulnerability:**", vulnerability)
-                st.write("**Interpretation:**", get_value(row, "INTERPRETATION"))
-                st.write("**Grade of Damageability:**", get_value(row, "GRADE OF DAMAGEABILITY"))
-
-                if "LOW" in vulnerability.upper():
-                    st.success(f"🟢 {vulnerability}")
-                elif "MODERATE" in vulnerability.upper():
-                    st.warning(f"🟡 {vulnerability}")
-                elif "HIGH" in vulnerability.upper():
-                    st.error(f"🔴 {vulnerability}")
-                else:
-                    st.info(vulnerability)
-
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("EXPORT REPORT")
-
-                pdf_file = generate_pdf(row)
-
-                st.download_button(
-                    label="📄 Export PDF Report",
-                    data=pdf_file,
-                    file_name=f"{get_value(row, 'BARANGAY HALL')}_seismic_report.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-
-                st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ==================================================
 # PAGE 3: DASHBOARD
