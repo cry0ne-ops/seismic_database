@@ -188,7 +188,7 @@ if search:
             with col2:
                 st.write("**Above Grade Stories:**", row.get("ABOVE GRADE", "N/A"))
                 st.write("**Below Grade Stories:**", row.get("BELOW GRADE", "N/A"))
-                st.write("**Total Floor Area:**", row.get("TOTAL FLOOR AREA (SQ. FT.)", "N/A"))
+                st.write("**Total Floor Area (SQ. FT.):**", row.get("TOTAL FLOOR AREA (SQ. FT.)", "N/A"))
                 st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
                 st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
 
