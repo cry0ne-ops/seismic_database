@@ -49,6 +49,13 @@ h1, h2, h3 {
     animation: fadeIn 0.6s ease-in-out;
 }
 
+.small-muted {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 15px;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -362,27 +369,30 @@ elif st.session_state.page == "Search":
                 photo_path = get_image_path(photo_folder, selected_barangay)
                 sketch_path = get_image_path(sketch_folder, selected_barangay)
 
+                # -----------------------------
+                # METRICS
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
 
                 col1, col2, col3 = st.columns(3)
                 col1.metric("RVS Score", get_metric_value(row, "RVS SCORE"))
                 col2.metric("Damage Grade", get_metric_value(row, "GRADE OF DAMAGEABILITY"))
                 col3.metric("Rank", get_metric_value(row, "RANK"))
+
                 st.markdown("""
-<div class="small-muted">
-<b>What do these mean?</b><br><br>
+                <div class="small-muted">
+                <b>What do these mean?</b><br><br>
+                • <b>RVS Score</b> – A numerical value obtained from Rapid Visual Screening. Lower scores indicate higher seismic vulnerability.<br>
+                • <b>Damage Grade</b> – Indicates the expected level of structural damage during an earthquake. Higher grades mean more severe damage.<br>
+                • <b>Rank</b> – Priority level based on vulnerability. Lower rank numbers indicate higher priority for inspection or intervention.
+                </div>
+                """, unsafe_allow_html=True)
 
-• <b>RVS Score</b> – A numerical value obtained from Rapid Visual Screening. Lower scores indicate higher seismic vulnerability.<br>
-
-• <b>Damage Grade</b> – Indicates the expected level of structural damage during an earthquake. Higher grades mean more severe damage.<br>
-
-• <b>Rank</b> – Priority level based on vulnerability. Lower rank numbers indicate higher priority for inspection or intervention.
-
-</div>
-""", unsafe_allow_html=True)
-                
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # -----------------------------
+                # INFORMATION
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("INFORMATION")
 
@@ -401,6 +411,9 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # -----------------------------
+                # HAZARDS AND IRREGULARITIES
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("HAZARDS AND IRREGULARITIES")
 
@@ -412,6 +425,9 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # -----------------------------
+                # PHOTO AND SKETCH
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("PHOTO AND SKETCH OF THE STRUCTURE")
 
@@ -433,89 +449,103 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # -----------------------------
+                # RVS RESULT
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("RAPID VISUAL SCREENING RESULT")
 
+                barangay_name = get_value(row, "BARANGAY HALL")
+                municipality_name = get_value(row, "MUNICIPALITY")
+                rvs_score = get_value(row, "RVS SCORE")
+                vulnerability = str(get_value(row, "VULNERABILITY")).strip()
+                damage_grade = get_value(row, "GRADE OF DAMAGEABILITY")
+                rank = get_value(row, "RANK")
+
+                geologic_hazard = get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")
+                exterior_hazard = get_value(row, "EXTERIOR FALLING HAZARDS")
+                plan_irregularity = get_value(row, "PLAN IRREGULARITY")
+                vertical_irregularity = get_value(row, "VERTICAL IRREGULARITY")
+                adjacency = get_value(row, "ADJACENCY")
+
+                st.write("**Score:**", rvs_score)
+                st.write("**Vulnerability:**", vulnerability)
+                st.write("**Interpretation:**", get_value(row, "INTERPRETATION"))
+                st.write("**Grade of Damageability:**", damage_grade)
+
+                if "LOW" in vulnerability.upper():
+                    st.success(f"🟢 {vulnerability}")
+                elif "MODERATE" in vulnerability.upper():
+                    st.warning(f"🟡 {vulnerability}")
+                elif "HIGH" in vulnerability.upper():
+                    st.error(f"🔴 {vulnerability}")
+                else:
+                    st.info(vulnerability)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                # -----------------------------
+                # OVERALL RESULT SUMMARY
+                # -----------------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("RAPID VISUAL SCREENING RESULT")
+                st.subheader("Overall Result Summary")
 
-# --- GET VALUES FIRST ---
-barangay_name = get_value(row, "BARANGAY HALL")
-municipality_name = get_value(row, "MUNICIPALITY")
-rvs_score = get_value(row, "RVS SCORE")
-vulnerability = str(get_value(row, "VULNERABILITY")).strip()
-damage_grade = get_value(row, "GRADE OF DAMAGEABILITY")
-rank = get_value(row, "RANK")
+                st.write(
+                    f"The **{barangay_name} Barangay Hall** located in **{municipality_name}** "
+                    f"was assessed using Rapid Visual Screening (RVS). "
+                    f"The structure obtained an **RVS Score of {rvs_score}**, classified as "
+                    f"**{vulnerability}**, with a **{damage_grade}** damageability rating and "
+                    f"a priority rank of **{rank}**."
+                )
 
-geologic_hazard = get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")
-exterior_hazard = get_value(row, "EXTERIOR FALLING HAZARDS")
-plan_irregularity = get_value(row, "PLAN IRREGULARITY")
-vertical_irregularity = get_value(row, "VERTICAL IRREGULARITY")
-adjacency = get_value(row, "ADJACENCY")
+                st.write(
+                    f"Based on the recorded hazards and irregularities, the structure is associated with "
+                    f"the following conditions: **Geologic Hazard:** {geologic_hazard}, "
+                    f"**Exterior Falling Hazards:** {exterior_hazard}, "
+                    f"**Plan Irregularity:** {plan_irregularity}, "
+                    f"**Vertical Irregularity:** {vertical_irregularity}, and "
+                    f"**Adjacency:** {adjacency}."
+                )
 
-# --- BASIC RESULT DISPLAY ---
-st.write("**Score:**", rvs_score)
-st.write("**Vulnerability:**", vulnerability)
-st.write("**Interpretation:**", get_value(row, "INTERPRETATION"))
-st.write("**Grade of Damageability:**", damage_grade)
+                if "LOW" in vulnerability.upper():
+                    st.success(
+                        "Overall, this barangay hall shows relatively low seismic vulnerability. "
+                        "Detailed structural evaluation may not be immediately required, but regular monitoring is recommended."
+                    )
+                elif "MODERATE" in vulnerability.upper():
+                    st.warning(
+                        "Overall, this barangay hall shows moderate seismic vulnerability. "
+                        "Further structural evaluation is recommended to verify safety and determine strengthening measures."
+                    )
+                elif "HIGH" in vulnerability.upper():
+                    st.error(
+                        "Overall, this barangay hall shows high seismic vulnerability. "
+                        "It should be prioritized for urgent detailed structural evaluation and possible intervention."
+                    )
+                else:
+                    st.info(
+                        "The vulnerability classification requires further review due to incomplete or unavailable recorded information."
+                    )
 
-# --- COLOR STATUS ---
-if "LOW" in vulnerability.upper():
-    st.success(f"🟢 {vulnerability}")
-elif "MODERATE" in vulnerability.upper():
-    st.warning(f"🟡 {vulnerability}")
-elif "HIGH" in vulnerability.upper():
-    st.error(f"🔴 {vulnerability}")
-else:
-    st.info(vulnerability)
+                st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
+                # -----------------------------
+                # EXPORT REPORT
+                # -----------------------------
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("EXPORT REPORT")
 
-# ==================================================
-# OVERALL RESULT SUMMARY (FIXED)
-# ==================================================
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("Overall Result Summary")
+                pdf_file = generate_pdf(row)
 
-st.write(
-    f"The **{barangay_name} Barangay Hall** located in **{municipality_name}** "
-    f"was assessed using Rapid Visual Screening (RVS). "
-    f"The structure obtained an **RVS Score of {rvs_score}**, classified as "
-    f"**{vulnerability}**, with a **{damage_grade}** damageability rating and "
-    f"a priority rank of **{rank}**."
-)
+                st.download_button(
+                    label="📄 Export PDF Report",
+                    data=pdf_file,
+                    file_name=f"{get_value(row, 'BARANGAY HALL')}_seismic_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
-st.write(
-    f"Based on the recorded hazards and irregularities, the structure is associated with "
-    f"the following conditions: **Geologic Hazard:** {geologic_hazard}, "
-    f"**Exterior Falling Hazards:** {exterior_hazard}, "
-    f"**Plan Irregularity:** {plan_irregularity}, "
-    f"**Vertical Irregularity:** {vertical_irregularity}, and "
-    f"**Adjacency:** {adjacency}."
-)
-
-# --- FINAL RECOMMENDATION ---
-if "LOW" in vulnerability.upper():
-    st.success(
-        "Overall, this barangay hall shows relatively low seismic vulnerability. "
-        "Detailed structural evaluation may not be immediately required, but regular monitoring is recommended."
-    )
-elif "MODERATE" in vulnerability.upper():
-    st.warning(
-        "Overall, this barangay hall shows moderate seismic vulnerability. "
-        "Further structural evaluation is recommended to verify safety and determine strengthening measures."
-    )
-elif "HIGH" in vulnerability.upper():
-    st.error(
-        "Overall, this barangay hall shows high seismic vulnerability. "
-        "It should be prioritized for urgent detailed structural evaluation and possible intervention."
-    )
-else:
-    st.info(
-        "The vulnerability classification requires further review due to incomplete data."
-    )
-
-st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
 # ==================================================
 # PAGE 3: DASHBOARD
