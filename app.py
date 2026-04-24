@@ -165,7 +165,6 @@ def generate_pdf(row):
         ("Above Grade Stories", get_value(row, "ABOVE GRADE")),
         ("Below Grade Stories", get_value(row, "BELOW GRADE")),
         ("Year Built", get_value(row, "YEAR BUILT")),
-        ("Code Year", get_value(row, "CODE YEAR")),
         ("Total Floor Area (SQ. FT.)", get_value(row, "TOTAL FLOOR AREA (SQ. FT.)")),
         ("Occupancy", get_value(row, "OCCUPANCY")),
         ("Soil Type", get_value(row, "SOIL TYPE")),
@@ -359,8 +358,7 @@ elif st.session_state.page == "Search":
                 st.write(f"      - Below Grade: {get_value(row, 'BELOW GRADE')}")
 
                 st.write(f"• **Year Built:** {get_value(row, 'YEAR BUILT')}")
-                st.write(f"• **Code Year:** {get_value(row, 'CODE YEAR')}")
-                st.write(f"• **Total Floor Area:** {get_value(row, 'TOTAL FLOOR AREA (SQ. FT.)')}")
+                st.write(f"• **Total Floor Area (SQ. FT.):** {get_value(row, 'TOTAL FLOOR AREA (SQ. FT.)')}")
                 st.write(f"• **Occupancy:** {get_value(row, 'OCCUPANCY')}")
                 st.write(f"• **Soil Type:** {get_value(row, 'SOIL TYPE')}")
                 st.write(f"• **FEMA Building Type:** {get_value(row, 'BUILDING TYPE')}")
