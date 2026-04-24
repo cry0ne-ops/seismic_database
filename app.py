@@ -96,7 +96,7 @@ def horizontal_bar_chart(data, title, xlabel):
 # -----------------------------
 # SIDEBAR
 # -----------------------------
-st.sidebar.title("Navigation")
+st.sidebar.header("Navigation")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📌 Thesis Information")
