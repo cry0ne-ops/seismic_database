@@ -2,47 +2,95 @@ import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import folium
 
-st.set_page_config(page_title="Seismic Vulnerability Records", layout="wide")
+from streamlit_folium import st_folium
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from io import BytesIO
 
+# ==================================================
+# PAGE CONFIG
+# ==================================================
+st.set_page_config(
+    page_title="Seismic Vulnerability Records",
+    layout="wide"
+)
+
+# ==================================================
+# CSS / DARK MODE / ANIMATIONS
+# ==================================================
 st.markdown("""
 <style>
 .stApp {
     background: #0f172a;
     color: #e5e7eb;
 }
+
 .block-container {
-    max-width: 1100px;
+    max-width: 1150px;
     padding-top: 2rem;
 }
+
 h1, h2, h3 {
     color: #f8fafc;
 }
+
+.fade-in {
+    animation: fadeIn 0.7s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .card {
     background: #111827;
-    padding: 22px;
-    border-radius: 14px;
+    padding: 24px;
+    border-radius: 16px;
     border: 1px solid #334155;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    animation: fadeIn 0.6s ease-in-out;
 }
+
 .stButton button {
     background: #2563eb;
     color: white;
     border-radius: 10px;
     border: none;
     font-weight: 600;
+    padding: 0.6rem 1rem;
 }
+
 .stButton button:hover {
     background: #1d4ed8;
     color: white;
 }
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.small-muted {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
+# ==================================================
 # LOAD DATA
-# -----------------------------
+# ==================================================
 df = pd.read_excel("final_dataset.xlsx")
 df.columns = df.columns.astype(str).str.strip().str.upper()
 
@@ -62,11 +110,20 @@ df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
 if "RANK" in df.columns:
     df["RANK"] = pd.to_numeric(df["RANK"], errors="coerce")
 
-# -----------------------------
-# HELPERS
-# -----------------------------
+# Optional coordinates
+if "LATITUDE" in df.columns:
+    df["LATITUDE"] = pd.to_numeric(df["LATITUDE"], errors="coerce")
+
+if "LONGITUDE" in df.columns:
+    df["LONGITUDE"] = pd.to_numeric(df["LONGITUDE"], errors="coerce")
+
+
+# ==================================================
+# HELPER FUNCTIONS
+# ==================================================
 def get_value(row, col_name):
     return row[col_name] if col_name in row.index else "N/A"
+
 
 def get_image_path(folder_path, barangay_name):
     if not os.path.isdir(folder_path):
@@ -76,11 +133,82 @@ def get_image_path(folder_path, barangay_name):
 
     for file in os.listdir(folder_path):
         name, ext = os.path.splitext(file)
+
         if ext.lower() in [".jpg", ".jpeg", ".png"]:
             if name.strip().lower() == barangay_clean:
                 return os.path.join(folder_path, file)
 
     return None
+
+
+def vulnerability_color(vulnerability):
+    vulnerability = str(vulnerability).upper()
+
+    if "LOW" in vulnerability:
+        return "green"
+    elif "MODERATE" in vulnerability:
+        return "orange"
+    elif "HIGH" in vulnerability:
+        return "red"
+    return "blue"
+
+
+def generate_pdf(row):
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    y = height - 50
+
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawString(50, y, "Seismic Vulnerability Barangay Hall Report")
+
+    y -= 30
+    pdf.setFont("Helvetica", 10)
+
+    fields = [
+        ("Name of Barangay Hall", get_value(row, "BARANGAY HALL")),
+        ("Municipality", get_value(row, "MUNICIPALITY")),
+        ("Zip Code", get_value(row, "ZIP CODE")),
+        ("Latitude", get_value(row, "LATITUDE")),
+        ("Longitude", get_value(row, "LONGITUDE")),
+        ("SS", get_value(row, "SS")),
+        ("S1", get_value(row, "S1")),
+        ("Above Grade Stories", get_value(row, "ABOVE GRADE")),
+        ("Below Grade Stories", get_value(row, "BELOW GRADE")),
+        ("Year Built", get_value(row, "YEAR BUILT")),
+        ("Code Year", get_value(row, "CODE YEAR")),
+        ("Total Floor Area", get_value(row, "TOTAL FLOOR AREA (SQ. FT.)")),
+        ("Occupancy", get_value(row, "OCCUPANCY")),
+        ("Soil Type", get_value(row, "SOIL TYPE")),
+        ("FEMA Building Type", get_value(row, "BUILDING TYPE")),
+        ("Geologic Hazards", get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")),
+        ("Exterior Falling Hazards", get_value(row, "EXTERIOR FALLING HAZARDS")),
+        ("Plan Irregularities", get_value(row, "PLAN IRREGULARITY")),
+        ("Vertical Irregularities", get_value(row, "VERTICAL IRREGULARITY")),
+        ("Adjacency", get_value(row, "ADJACENCY")),
+        ("RVS Score", get_value(row, "RVS SCORE")),
+        ("Vulnerability", get_value(row, "VULNERABILITY")),
+        ("Interpretation", get_value(row, "INTERPRETATION")),
+        ("Grade of Damageability", get_value(row, "GRADE OF DAMAGEABILITY")),
+        ("Rank", get_value(row, "RANK")),
+    ]
+
+    for label, value in fields:
+        if y < 70:
+            pdf.showPage()
+            y = height - 50
+
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(50, y, f"{label}:")
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(210, y, str(value))
+        y -= 18
+
+    pdf.save()
+    buffer.seek(0)
+    return buffer
+
 
 def horizontal_bar_chart(data, title, xlabel):
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -93,42 +221,109 @@ def horizontal_bar_chart(data, title, xlabel):
     plt.tight_layout()
     st.pyplot(fig)
 
-# -----------------------------
+
+# ==================================================
+# SESSION STATE PAGE CONTROL
+# ==================================================
+if "page" not in st.session_state:
+    st.session_state.page = "About"
+
+
+# ==================================================
 # SIDEBAR
-# -----------------------------
-st.sidebar.header("Navigation")
+# ==================================================
+st.sidebar.title("Navigation")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📌 Thesis Information")
+st.sidebar.markdown("### 📌 System Description")
 st.sidebar.markdown("""
-**DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF  
-BARANGAY HALLS IN L.I.S.T.T. AREA**
+Seismic Vulnerability Records are organized data used to assess how susceptible barangay halls are to earthquake damage.
 
-This system stores, organizes, searches, and visualizes seismic vulnerability records of barangay halls using Rapid Visual Screening (RVS).
-
-**Coverage Area:**
-- La Trinidad
-- Itogon
-- Sablan
-- Tuba
-- Tublay
+Using Rapid Visual Screening (RVS), each structure is evaluated based on its physical characteristics, hazards, and site conditions to support risk assessment and disaster preparedness.
 """)
 
-page = st.sidebar.radio(
-    "Go to",
-    ["🔍 Search Barangay", "📊 Dashboard", "ℹ️ About"]
-)
+st.sidebar.markdown("---")
+
+if st.sidebar.button("🏠 About System", use_container_width=True):
+    st.session_state.page = "About"
+    st.rerun()
+
+if st.sidebar.button("🔍 Search Barangay", use_container_width=True):
+    st.session_state.page = "Search"
+    st.rerun()
+
+if st.sidebar.button("📊 Dashboard", use_container_width=True):
+    st.session_state.page = "Dashboard"
+    st.rerun()
+
 
 # ==================================================
-# PAGE 1: SEARCH BARANGAY
+# PAGE 1: ABOUT SYSTEM
 # ==================================================
-if page == "🔍 Search Barangay":
+if st.session_state.page == "About":
 
-    st.title("Seismic Vulnerability Records")
-    st.caption("Barangay Hall Assessment System")
+    st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+    st.title("Seismic Vulnerability Records System")
+    st.markdown(
+        '<div class="subtitle">Database Development on Seismic Vulnerability of Barangay Halls in L.I.S.T.T. Area</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Search Barangay Record")
+    st.subheader("Thesis Title")
+
+    st.write("""
+    **DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF BARANGAY HALLS IN L.I.S.T.T.  
+    (LA TRINIDAD, ITOGON, SABLAN, TUBA, TUBLAY) AREA USING RAPID VISUAL SCREENING**
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("About the System")
+
+    st.write("""
+    This web-based system stores, organizes, searches, and visualizes seismic vulnerability
+    records of barangay halls within the L.I.S.T.T. area. It uses Rapid Visual Screening (RVS)
+    data to help identify structural vulnerability levels, hazards, irregularities, and the need
+    for further structural evaluation.
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Go to")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🔍 Search Barangay Records", use_container_width=True):
+            st.session_state.page = "Search"
+            st.rerun()
+
+    with col2:
+        if st.button("📊 View Dashboard", use_container_width=True):
+            st.session_state.page = "Dashboard"
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==================================================
+# PAGE 2: SEARCH BARANGAY
+# ==================================================
+elif st.session_state.page == "Search":
+
+    st.title("Search Barangay Record")
+    st.caption("View detailed seismic vulnerability information per barangay hall")
+
+    if st.button("⬅ Back to About System"):
+        st.session_state.page = "About"
+        st.rerun()
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Search")
 
     col1, col2, col3 = st.columns(3)
 
@@ -174,49 +369,54 @@ if page == "🔍 Search Barangay":
                 photo_path = get_image_path(photo_folder, selected_barangay)
                 sketch_path = get_image_path(sketch_folder, selected_barangay)
 
+                # SUMMARY
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                c1, c2, c3 = st.columns(3)
 
+                c1, c2, c3 = st.columns(3)
                 c1.metric("RVS Score", get_value(row, "RVS SCORE"))
                 c2.metric("Damage Grade", get_value(row, "GRADE OF DAMAGEABILITY"))
                 c3.metric("Rank", get_value(row, "RANK"))
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # INFORMATION FORMAT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("General Information")
+                st.subheader("INFORMATION")
 
-                col1, col2 = st.columns(2)
+                st.write(f"• **Name of Barangay Hall:** {get_value(row, 'BARANGAY HALL')}")
+                st.write(f"• **Municipality:** {get_value(row, 'MUNICIPALITY')}")
+                st.write(f"• **Zip Code:** {get_value(row, 'ZIP CODE')}")
+                st.write(f"• **Longitude and Latitude:** {get_value(row, 'LONGITUDE')}, {get_value(row, 'LATITUDE')}")
+                st.write(f"• **SS and S1:** {get_value(row, 'SS')} / {get_value(row, 'S1')}")
 
-                with col1:
-                    st.write("**Code:**", get_value(row, "CODE"))
-                    st.write("**Barangay Hall:**", get_value(row, "BARANGAY HALL"))
-                    st.write("**Municipality:**", get_value(row, "MUNICIPALITY"))
-                    st.write("**Year Built:**", get_value(row, "YEAR BUILT"))
-                    st.write("**Occupancy:**", get_value(row, "OCCUPANCY"))
+                st.write("• **No. of Stories:**")
+                st.write(f"  Above Grade: {get_value(row, 'ABOVE GRADE')}")
+                st.write(f"  Below Grade: {get_value(row, 'BELOW GRADE')}")
 
-                with col2:
-                    st.write("**Above Grade Stories:**", get_value(row, "ABOVE GRADE"))
-                    st.write("**Below Grade Stories:**", get_value(row, "BELOW GRADE"))
-                    st.write("**Total Floor Area:**", get_value(row, "TOTAL FLOOR AREA (SQ. FT.)"))
-                    st.write("**Soil Type:**", get_value(row, "SOIL TYPE"))
-                    st.write("**Building Type:**", get_value(row, "BUILDING TYPE"))
+                st.write(f"• **Year Built:** {get_value(row, 'YEAR BUILT')}")
+                st.write(f"• **Code Year:** {get_value(row, 'CODE YEAR')}")
+                st.write(f"• **Total Floor Area:** {get_value(row, 'TOTAL FLOOR AREA (SQ. FT.)')}")
+                st.write(f"• **Occupancy:** {get_value(row, 'OCCUPANCY')}")
+                st.write(f"• **Soil Type:** {get_value(row, 'SOIL TYPE')}")
+                st.write(f"• **FEMA Building Type:** {get_value(row, 'BUILDING TYPE')}")
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # HAZARDS FORMAT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Hazards and Irregularities")
+                st.subheader("HAZARDS AND IRREGULARITIES")
 
-                st.write("**Geologic Hazards:**", get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)"))
-                st.write("**Adjacency:**", get_value(row, "ADJACENCY"))
-                st.write("**Exterior Falling Hazards:**", get_value(row, "EXTERIOR FALLING HAZARDS"))
-                st.write("**Vertical Irregularity:**", get_value(row, "VERTICAL IRREGULARITY"))
-                st.write("**Plan Irregularity:**", get_value(row, "PLAN IRREGULARITY"))
+                st.write(f"• **Geologic Hazards:** {get_value(row, 'GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)')}")
+                st.write(f"• **Exterior Falling Hazards:** {get_value(row, 'EXTERIOR FALLING HAZARDS')}")
+                st.write(f"• **Plan Irregularities:** {get_value(row, 'PLAN IRREGULARITY')}")
+                st.write(f"• **Vertical Irregularities:** {get_value(row, 'VERTICAL IRREGULARITY')}")
+                st.write(f"• **Adjacency:** {get_value(row, 'ADJACENCY')}")
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # PHOTO AND SKETCH
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Photo and Sketch of the Structure")
+                st.subheader("PHOTO AND SKETCH OF THE STRUCTURE")
 
                 col1, col2 = st.columns(2)
 
@@ -236,16 +436,36 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # MAP
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Code Classification")
+                st.subheader("LOCATION MAP")
 
-                st.write("**Pre-Code Before 1972:**", get_value(row, "PRE-CODE (BEFORE 1972)"))
-                st.write("**Post-Benchmark After 1972:**", get_value(row, "POST-BENCHMARK (AFTER 1972)"))
+                lat = get_value(row, "LATITUDE")
+                lon = get_value(row, "LONGITUDE")
+
+                try:
+                    lat = float(lat)
+                    lon = float(lon)
+
+                    m = folium.Map(location=[lat, lon], zoom_start=15)
+
+                    folium.Marker(
+                        location=[lat, lon],
+                        popup=f"{get_value(row, 'BARANGAY HALL')} - {get_value(row, 'VULNERABILITY')}",
+                        tooltip=get_value(row, "BARANGAY HALL"),
+                        icon=folium.Icon(color=vulnerability_color(get_value(row, "VULNERABILITY")))
+                    ).add_to(m)
+
+                    st_folium(m, width=1000, height=420)
+
+                except:
+                    st.info("Map unavailable. Latitude and Longitude are missing or invalid.")
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # RVS RESULT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("Rapid Visual Screening Result")
+                st.subheader("RAPID VISUAL SCREENING RESULT")
 
                 vulnerability = str(get_value(row, "VULNERABILITY")).strip()
 
@@ -265,13 +485,34 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
+                # PDF EXPORT
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("EXPORT REPORT")
+
+                pdf_file = generate_pdf(row)
+
+                st.download_button(
+                    label="📄 Export PDF Report",
+                    data=pdf_file,
+                    file_name=f"{get_value(row, 'BARANGAY HALL')}_seismic_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ==================================================
-# PAGE 2: DASHBOARD
+# PAGE 3: DASHBOARD
 # ==================================================
-elif page == "📊 Dashboard":
+elif st.session_state.page == "Dashboard":
 
     st.title("Vulnerability Dashboard")
     st.caption("Panel-friendly summary of seismic vulnerability results")
+
+    if st.button("⬅ Back to About System"):
+        st.session_state.page = "About"
+        st.rerun()
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
 
@@ -298,10 +539,12 @@ elif page == "📊 Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # GRAPH 1
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Vulnerability Distribution")
 
     vulnerability_counts = dashboard_df["VULNERABILITY"].value_counts().sort_values()
+
     horizontal_bar_chart(
         vulnerability_counts,
         "Number of Barangay Halls per Vulnerability Level",
@@ -310,10 +553,12 @@ elif page == "📊 Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # GRAPH 2
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Average RVS Score by Municipality")
 
     avg_scores = dashboard_df.groupby("MUNICIPALITY")["RVS SCORE"].mean().sort_values()
+
     horizontal_bar_chart(
         avg_scores,
         "Average RVS Score by Municipality",
@@ -322,6 +567,7 @@ elif page == "📊 Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # GRAPH 3
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("RVS Score per Barangay")
 
@@ -340,6 +586,36 @@ elif page == "📊 Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # DASHBOARD MAP
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Barangay Hall Map")
+
+    if "LATITUDE" in dashboard_df.columns and "LONGITUDE" in dashboard_df.columns:
+        map_df = dashboard_df.dropna(subset=["LATITUDE", "LONGITUDE"])
+
+        if not map_df.empty:
+            center_lat = map_df["LATITUDE"].mean()
+            center_lon = map_df["LONGITUDE"].mean()
+
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
+
+            for _, row in map_df.iterrows():
+                folium.Marker(
+                    location=[row["LATITUDE"], row["LONGITUDE"]],
+                    popup=f"{row['BARANGAY HALL']} - {row['VULNERABILITY']}",
+                    tooltip=row["BARANGAY HALL"],
+                    icon=folium.Icon(color=vulnerability_color(row["VULNERABILITY"]))
+                ).add_to(m)
+
+            st_folium(m, width=1000, height=500)
+        else:
+            st.info("No valid coordinates available for mapping.")
+    else:
+        st.info("Latitude and Longitude columns are required to show the map.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # HIGH RISK TABLE
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("High Vulnerability Barangays")
 
@@ -365,63 +641,5 @@ elif page == "📊 Dashboard":
         )
     else:
         st.info("No high vulnerability barangays found.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ==================================================
-# PAGE 3: ABOUT
-# ==================================================
-elif page == "ℹ️ About":
-
-    st.title("About the System")
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Thesis Title")
-
-    st.write("""
-    **DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF BARANGAY HALLS IN L.I.S.T.T.  
-    (LA TRINIDAD, ITOGON, SABLAN, TUBA, TUBLAY) AREA USING RAPID VISUAL SCREENING**
-    """)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("System Description")
-
-    st.write("""
-    This web-based system is designed to store, manage, search, and visualize seismic vulnerability
-    records of barangay halls within the L.I.S.T.T. area. It uses Rapid Visual Screening (RVS)
-    data to provide users with structured information about each barangay hall, including building
-    characteristics, hazards, irregularities, RVS scores, vulnerability classification, photos,
-    and structural sketches.
-    """)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Main Features")
-
-    st.write("""
-    - Search barangay hall records by municipality and barangay
-    - View structural and hazard-related information
-    - Display photos and sketches of barangay hall structures
-    - Analyze vulnerability distribution through readable graphs
-    - Filter dashboard results by municipality
-    - Identify high-vulnerability barangay halls
-    """)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Coverage Area")
-
-    st.write("""
-    The system covers barangay halls located in:
-    - La Trinidad
-    - Itogon
-    - Sablan
-    - Tuba
-    - Tublay
-    """)
 
     st.markdown("</div>", unsafe_allow_html=True)
