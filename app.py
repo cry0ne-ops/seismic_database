@@ -22,25 +22,75 @@ st.set_page_config(page_title="Seismic System", layout="wide")
 # -----------------------------
 st.markdown("""
 <style>
+.stApp {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
 .block-container {
     max-width: 900px;
     padding-top: 2rem;
 }
+
+h1, h2, h3 {
+    color: #f8fafc;
+}
+
 h1 {
     text-align: center;
-    font-weight: 600;
+    font-weight: 700;
 }
+
 .subtitle {
     text-align: center;
-    color: gray;
+    color: #94a3b8;
     margin-bottom: 2rem;
 }
+
 .card {
-    background: white;
-    padding: 20px;
+    background: #111827;
+    padding: 22px;
+    border-radius: 14px;
+    border: 1px solid #334155;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+div[data-testid="stMetric"] {
+    background: #1e293b;
+    padding: 16px;
     border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    margin-bottom: 15px;
+    border: 1px solid #334155;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #94a3b8;
+}
+
+div[data-testid="stMetricValue"] {
+    color: #f8fafc;
+}
+
+.stSelectbox label {
+    color: #e5e7eb !important;
+}
+
+.stButton button {
+    background: #2563eb;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+}
+
+.stButton button:hover {
+    background: #1d4ed8;
+    color: white;
+}
+
+[data-testid="stMarkdownContainer"] {
+    color: #e5e7eb;
 }
 </style>
 """, unsafe_allow_html=True)
