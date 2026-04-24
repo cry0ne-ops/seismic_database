@@ -58,17 +58,9 @@ h1, h2, h3 {
 # -----------------------------
 df = pd.read_excel("final_dataset.xlsx")
 
-# Clean column names
-df.columns = (
-    df.columns
-    .astype(str)
-    .str.strip()
-    .str.upper()
-)
+df.columns = df.columns.astype(str).str.strip().str.upper()
 
-# Safety check
 required_cols = ["MUNICIPALITY", "BARANGAY HALL", "VULNERABILITY", "RVS SCORE"]
-
 missing = [col for col in required_cols if col not in df.columns]
 
 if missing:
@@ -76,9 +68,8 @@ if missing:
     st.write("Available columns:", list(df.columns))
     st.stop()
 
-# Clean data values
 df["MUNICIPALITY"] = df["MUNICIPALITY"].astype(str).str.strip().str.upper()
-df["BARANGAY HALL"] = df["BARANGAY HALL"].astype(str).str.strip().str.upper()
+df["BARANGAY HALL"] = df["BARANGAY HALL"].astype(str).str.strip()
 df["VULNERABILITY"] = df["VULNERABILITY"].astype(str).str.strip()
 
 df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
@@ -92,12 +83,27 @@ if "RANK" in df.columns:
 def get_value(row, col_name):
     return row[col_name] if col_name in row.index else "N/A"
 
-def get_image_path(base_path):
-    for ext in [".jpg", ".jpeg", ".png"]:
-        path = base_path + ext
-        if os.path.exists(path):
-            return path
+
+def get_image_path(folder_path, barangay_name):
+    """
+    Finds image inside folder by barangay name.
+    Case-insensitive filename matching.
+    Supports jpg, jpeg, png.
+    """
+    if not os.path.isdir(folder_path):
+        return None
+
+    barangay_clean = str(barangay_name).strip().lower()
+
+    for file in os.listdir(folder_path):
+        name, ext = os.path.splitext(file)
+
+        if ext.lower() in [".jpg", ".jpeg", ".png"]:
+            if name.strip().lower() == barangay_clean:
+                return os.path.join(folder_path, file)
+
     return None
+
 
 # -----------------------------
 # SIDEBAR NAVIGATION
@@ -156,15 +162,13 @@ if page == "🔍 Search Barangay":
                 row = result.iloc[0]
 
                 selected_municipality = str(row["MUNICIPALITY"]).strip().upper()
-                selected_barangay = str(row["BARANGAY HALL"]).strip().upper()
+                selected_barangay = str(row["BARANGAY HALL"]).strip()
 
-                photo_path = get_image_path(
-                    f"images/{selected_municipality} Pics/{selected_barangay}"
-                )
+                photo_folder = f"images/{selected_municipality} PICS"
+                sketch_folder = f"images/{selected_municipality} SKETCHES"
 
-                sketch_path = get_image_path(
-                    f"images/{selected_municipality} Sketch/{selected_barangay}"
-                )
+                photo_path = get_image_path(photo_folder, selected_barangay)
+                sketch_path = get_image_path(sketch_folder, selected_barangay)
 
                 # SUMMARY
                 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -300,42 +304,30 @@ elif page == "📊 Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 1
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Vulnerability Distribution")
-
     vulnerability_counts = dashboard_df["VULNERABILITY"].value_counts()
     st.bar_chart(vulnerability_counts)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 2
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("RVS Score per Barangay")
-
     score_chart = dashboard_df[["BARANGAY HALL", "RVS SCORE"]].dropna()
     score_chart = score_chart.set_index("BARANGAY HALL")
-
     st.bar_chart(score_chart)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 3
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Vulnerability by Municipality")
-
     grouped = (
         dashboard_df
         .groupby(["MUNICIPALITY", "VULNERABILITY"])
         .size()
         .unstack(fill_value=0)
     )
-
     st.bar_chart(grouped)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # HIGH RISK TABLE
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("High Vulnerability Barangays")
 
