@@ -123,17 +123,17 @@ if "page" not in st.session_state:
 # ==================================================
 def get_value(row, col_name):
     if col_name not in row.index:
-        return "No Data Recorded"
+        return "None"
 
     value = row[col_name]
 
     if pd.isna(value):
-        return "No Data Recorded"
+        return "None"
 
     value_str = str(value).strip()
 
     if value_str.lower() in ["nan", "none", "null", "n/a", "na", ""]:
-        return "No Data Recorded"
+        return "None"
 
     if isinstance(value, float) and value.is_integer():
         return int(value)
@@ -143,7 +143,7 @@ def get_value(row, col_name):
 
 def get_metric_value(row, col_name):
     value = get_value(row, col_name)
-    return "—" if value == "No Data Recorded" else value
+    return "—" if value == "None" else value
 
 
 def get_image_path(folder_path, barangay_name):
