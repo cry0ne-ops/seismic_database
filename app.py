@@ -368,7 +368,19 @@ elif st.session_state.page == "Search":
                 col1.metric("RVS Score", get_metric_value(row, "RVS SCORE"))
                 col2.metric("Damage Grade", get_metric_value(row, "GRADE OF DAMAGEABILITY"))
                 col3.metric("Rank", get_metric_value(row, "RANK"))
+                st.markdown("""
+<div class="small-muted">
+<b>What do these mean?</b><br><br>
 
+• <b>RVS Score</b> – A numerical value obtained from Rapid Visual Screening. Lower scores indicate higher seismic vulnerability.<br>
+
+• <b>Damage Grade</b> – Indicates the expected level of structural damage during an earthquake. Higher grades mean more severe damage.<br>
+
+• <b>Rank</b> – Priority level based on vulnerability. Lower rank numbers indicate higher priority for inspection or intervention.
+
+</div>
+""", unsafe_allow_html=True)
+                
                 st.markdown("</div>", unsafe_allow_html=True)
 
                 st.markdown('<div class="card">', unsafe_allow_html=True)
