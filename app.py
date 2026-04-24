@@ -559,15 +559,14 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # -----------------------------
-                # EXPORT REPORT
-                # -----------------------------
+# ------------------------
+# EXPORT REPORT
+# -----------------------
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("EXPORT REPORT")
 
-               pdf_file = generate_pdf(row, photo_path, sketch_path)
-
-                    st.download_button(
+                pdf_file = generate_pdf(row, photo_path, sketch_path)
+                st.download_button(
                         label="📄 Export Full PDF Report (with Images)",
                         data=pdf_file,
                         file_name=f"{get_value(row, 'BARANGAY HALL')}_FULL_REPORT.pdf",
