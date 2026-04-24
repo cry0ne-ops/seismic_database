@@ -437,25 +437,11 @@ elif st.session_state.page == "Search":
                 st.subheader("RAPID VISUAL SCREENING RESULT")
 
                 # -----------------------------
-# OVERALL RESULT SUMMARY
-# -----------------------------
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("Overall Result Summary")
-
-barangay_name = get_value(row, "BARANGAY HALL")
-municipality_name = get_value(row, "MUNICIPALITY")
-rvs_score = get_value(row, "RVS SCORE")
-vulnerability = str(get_value(row, "VULNERABILITY")).strip()
-damage_grade = get_value(row, "GRADE OF DAMAGEABILITY")
-rank = get_value(row, "RANK")
-
-geologic_hazard = get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")
-exterior_hazard = get_value(row, "EXTERIOR FALLING HAZARDS")
-plan_irregularity = get_value(row, "PLAN IRREGULARITY")
-vertical_irregularity = get_value(row, "VERTICAL IRREGULARITY")
-adjacency = get_value(row, "ADJACENCY")
-
-st.write(
+                # OVERALL RESULT SUMMARY
+                # -----------------------------
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.subheader("Overall Result Summary")
+                st.write(
     f"The **{barangay_name} Barangay Hall** located in **{municipality_name}** "
     f"was assessed using Rapid Visual Screening (RVS). "
     f"The structure obtained an **RVS Score of {rvs_score}**, classified as "
@@ -463,7 +449,7 @@ st.write(
     f"a priority rank of **{rank}**."
 )
 
-st.write(
+                st.write(
     f"Based on the recorded hazards and irregularities, the structure is associated with "
     f"the following conditions: **Geologic Hazard:** {geologic_hazard}, "
     f"**Exterior Falling Hazards:** {exterior_hazard}, "
@@ -494,7 +480,7 @@ else:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-                vulnerability = str(get_value(row, "VULNERABILITY")).strip()
+vulnerability = str(get_value(row, "VULNERABILITY")).strip()
 
                 st.write("**Score:**", get_value(row, "RVS SCORE"))
                 st.write("**Vulnerability:**", vulnerability)
