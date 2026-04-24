@@ -2,12 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-import folium
-
-from streamlit_folium import st_folium
+from io import BytesIO
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from io import BytesIO
 
 # ==================================================
 # PAGE CONFIG
@@ -18,7 +15,7 @@ st.set_page_config(
 )
 
 # ==================================================
-# CSS / DARK MODE / ANIMATIONS
+# DARK MODE + ANIMATIONS
 # ==================================================
 st.markdown("""
 <style>
@@ -28,7 +25,7 @@ st.markdown("""
 }
 
 .block-container {
-    max-width: 1150px;
+    max-width: 1100px;
     padding-top: 2rem;
 }
 
@@ -36,8 +33,20 @@ h1, h2, h3 {
     color: #f8fafc;
 }
 
-.fade-in {
-    animation: fadeIn 0.7s ease-in-out;
+.subtitle {
+    color: #94a3b8;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: #111827;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    animation: fadeIn 0.6s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -51,23 +60,13 @@ h1, h2, h3 {
     }
 }
 
-.card {
-    background: #111827;
-    padding: 24px;
-    border-radius: 16px;
-    border: 1px solid #334155;
-    margin-bottom: 18px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-    animation: fadeIn 0.6s ease-in-out;
-}
-
 .stButton button {
     background: #2563eb;
     color: white;
     border-radius: 10px;
     border: none;
     font-weight: 600;
-    padding: 0.6rem 1rem;
+    padding: 0.65rem 1rem;
 }
 
 .stButton button:hover {
@@ -75,15 +74,11 @@ h1, h2, h3 {
     color: white;
 }
 
-.subtitle {
-    color: #94a3b8;
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.small-muted {
-    color: #94a3b8;
-    font-size: 0.9rem;
+div[data-testid="stMetric"] {
+    background: #1e293b;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #334155;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -110,13 +105,11 @@ df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
 if "RANK" in df.columns:
     df["RANK"] = pd.to_numeric(df["RANK"], errors="coerce")
 
-# Optional coordinates
-if "LATITUDE" in df.columns:
-    df["LATITUDE"] = pd.to_numeric(df["LATITUDE"], errors="coerce")
-
-if "LONGITUDE" in df.columns:
-    df["LONGITUDE"] = pd.to_numeric(df["LONGITUDE"], errors="coerce")
-
+# ==================================================
+# SESSION STATE
+# ==================================================
+if "page" not in st.session_state:
+    st.session_state.page = "About"
 
 # ==================================================
 # HELPER FUNCTIONS
@@ -141,16 +134,16 @@ def get_image_path(folder_path, barangay_name):
     return None
 
 
-def vulnerability_color(vulnerability):
-    vulnerability = str(vulnerability).upper()
-
-    if "LOW" in vulnerability:
-        return "green"
-    elif "MODERATE" in vulnerability:
-        return "orange"
-    elif "HIGH" in vulnerability:
-        return "red"
-    return "blue"
+def horizontal_bar_chart(data, title, xlabel):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    data.plot(kind="barh", ax=ax)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("")
+    ax.bar_label(ax.containers[0], padding=3)
+    ax.grid(axis="x", linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    st.pyplot(fig)
 
 
 def generate_pdf(row):
@@ -170,10 +163,8 @@ def generate_pdf(row):
         ("Name of Barangay Hall", get_value(row, "BARANGAY HALL")),
         ("Municipality", get_value(row, "MUNICIPALITY")),
         ("Zip Code", get_value(row, "ZIP CODE")),
-        ("Latitude", get_value(row, "LATITUDE")),
-        ("Longitude", get_value(row, "LONGITUDE")),
-        ("SS", get_value(row, "SS")),
-        ("S1", get_value(row, "S1")),
+        ("Longitude and Latitude", f"{get_value(row, 'LONGITUDE')}, {get_value(row, 'LATITUDE')}"),
+        ("SS and S1", f"{get_value(row, 'SS')} / {get_value(row, 'S1')}"),
         ("Above Grade Stories", get_value(row, "ABOVE GRADE")),
         ("Below Grade Stories", get_value(row, "BELOW GRADE")),
         ("Year Built", get_value(row, "YEAR BUILT")),
@@ -209,26 +200,6 @@ def generate_pdf(row):
     buffer.seek(0)
     return buffer
 
-
-def horizontal_bar_chart(data, title, xlabel):
-    fig, ax = plt.subplots(figsize=(9, 5))
-    data.plot(kind="barh", ax=ax)
-    ax.set_title(title, fontsize=14)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("")
-    ax.bar_label(ax.containers[0], padding=3)
-    ax.grid(axis="x", linestyle="--", alpha=0.4)
-    plt.tight_layout()
-    st.pyplot(fig)
-
-
-# ==================================================
-# SESSION STATE PAGE CONTROL
-# ==================================================
-if "page" not in st.session_state:
-    st.session_state.page = "About"
-
-
 # ==================================================
 # SIDEBAR
 # ==================================================
@@ -239,7 +210,7 @@ st.sidebar.markdown("### 📌 System Description")
 st.sidebar.markdown("""
 Seismic Vulnerability Records are organized data used to assess how susceptible barangay halls are to earthquake damage.
 
-Using Rapid Visual Screening (RVS), each structure is evaluated based on its physical characteristics, hazards, and site conditions to support risk assessment and disaster preparedness.
+Using Rapid Visual Screening (RVS), each structure is evaluated based on physical characteristics, hazards, and site conditions to support risk assessment and disaster preparedness.
 """)
 
 st.sidebar.markdown("---")
@@ -256,40 +227,43 @@ if st.sidebar.button("📊 Dashboard", use_container_width=True):
     st.session_state.page = "Dashboard"
     st.rerun()
 
-
 # ==================================================
-# PAGE 1: ABOUT SYSTEM
+# PAGE 1: ABOUT
 # ==================================================
 if st.session_state.page == "About":
 
-    st.markdown('<div class="fade-in">', unsafe_allow_html=True)
     st.title("Seismic Vulnerability Records System")
     st.markdown(
         '<div class="subtitle">Database Development on Seismic Vulnerability of Barangay Halls in L.I.S.T.T. Area</div>',
         unsafe_allow_html=True
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Thesis Title")
-
     st.write("""
     **DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF BARANGAY HALLS IN L.I.S.T.T.  
     (LA TRINIDAD, ITOGON, SABLAN, TUBA, TUBLAY) AREA USING RAPID VISUAL SCREENING**
     """)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("About the System")
-
     st.write("""
-    This web-based system stores, organizes, searches, and visualizes seismic vulnerability
-    records of barangay halls within the L.I.S.T.T. area. It uses Rapid Visual Screening (RVS)
-    data to help identify structural vulnerability levels, hazards, irregularities, and the need
-    for further structural evaluation.
+    This web-based system stores, organizes, searches, and visualizes seismic vulnerability records
+    of barangay halls within the L.I.S.T.T. area. It uses Rapid Visual Screening data to help identify
+    structural vulnerability levels, hazards, irregularities, and the need for further structural evaluation.
     """)
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Main Features")
+    st.write("""
+    - Search barangay hall records by municipality and barangay  
+    - View structural and hazard-related information  
+    - Display photos and structural sketches  
+    - Analyze vulnerability data through charts  
+    - Export barangay record as PDF report  
+    """)
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -309,9 +283,8 @@ if st.session_state.page == "About":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
 # ==================================================
-# PAGE 2: SEARCH BARANGAY
+# PAGE 2: SEARCH
 # ==================================================
 elif st.session_state.page == "Search":
 
@@ -369,17 +342,15 @@ elif st.session_state.page == "Search":
                 photo_path = get_image_path(photo_folder, selected_barangay)
                 sketch_path = get_image_path(sketch_folder, selected_barangay)
 
-                # SUMMARY
                 st.markdown('<div class="card">', unsafe_allow_html=True)
 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("RVS Score", get_value(row, "RVS SCORE"))
-                c2.metric("Damage Grade", get_value(row, "GRADE OF DAMAGEABILITY"))
-                c3.metric("Rank", get_value(row, "RANK"))
+                col1, col2, col3 = st.columns(3)
+                col1.metric("RVS Score", get_value(row, "RVS SCORE"))
+                col2.metric("Damage Grade", get_value(row, "GRADE OF DAMAGEABILITY"))
+                col3.metric("Rank", get_value(row, "RANK"))
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # INFORMATION FORMAT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("INFORMATION")
 
@@ -402,7 +373,6 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # HAZARDS FORMAT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("HAZARDS AND IRREGULARITIES")
 
@@ -414,7 +384,6 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # PHOTO AND SKETCH
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("PHOTO AND SKETCH OF THE STRUCTURE")
 
@@ -436,34 +405,6 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # MAP
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.subheader("LOCATION MAP")
-
-                lat = get_value(row, "LATITUDE")
-                lon = get_value(row, "LONGITUDE")
-
-                try:
-                    lat = float(lat)
-                    lon = float(lon)
-
-                    m = folium.Map(location=[lat, lon], zoom_start=15)
-
-                    folium.Marker(
-                        location=[lat, lon],
-                        popup=f"{get_value(row, 'BARANGAY HALL')} - {get_value(row, 'VULNERABILITY')}",
-                        tooltip=get_value(row, "BARANGAY HALL"),
-                        icon=folium.Icon(color=vulnerability_color(get_value(row, "VULNERABILITY")))
-                    ).add_to(m)
-
-                    st_folium(m, width=1000, height=420)
-
-                except:
-                    st.info("Map unavailable. Latitude and Longitude are missing or invalid.")
-
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                # RVS RESULT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("RAPID VISUAL SCREENING RESULT")
 
@@ -485,7 +426,6 @@ elif st.session_state.page == "Search":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # PDF EXPORT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("EXPORT REPORT")
 
@@ -500,7 +440,6 @@ elif st.session_state.page == "Search":
                 )
 
                 st.markdown("</div>", unsafe_allow_html=True)
-
 
 # ==================================================
 # PAGE 3: DASHBOARD
@@ -526,20 +465,19 @@ elif st.session_state.page == "Dashboard":
     else:
         dashboard_df = df.copy()
 
-    c1, c2, c3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-    c1.metric("Total Barangays", len(dashboard_df))
-    c2.metric("Average RVS Score", round(dashboard_df["RVS SCORE"].mean(), 2))
+    col1.metric("Total Barangays", len(dashboard_df))
+    col2.metric("Average RVS Score", round(dashboard_df["RVS SCORE"].mean(), 2))
 
     high_count = dashboard_df[
         dashboard_df["VULNERABILITY"].str.contains("High", case=False, na=False)
     ].shape[0]
 
-    c3.metric("High Vulnerability", high_count)
+    col3.metric("High Vulnerability", high_count)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 1
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Vulnerability Distribution")
 
@@ -553,7 +491,6 @@ elif st.session_state.page == "Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 2
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Average RVS Score by Municipality")
 
@@ -567,7 +504,6 @@ elif st.session_state.page == "Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH 3
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("RVS Score per Barangay")
 
@@ -586,36 +522,6 @@ elif st.session_state.page == "Dashboard":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # DASHBOARD MAP
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Barangay Hall Map")
-
-    if "LATITUDE" in dashboard_df.columns and "LONGITUDE" in dashboard_df.columns:
-        map_df = dashboard_df.dropna(subset=["LATITUDE", "LONGITUDE"])
-
-        if not map_df.empty:
-            center_lat = map_df["LATITUDE"].mean()
-            center_lon = map_df["LONGITUDE"].mean()
-
-            m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
-
-            for _, row in map_df.iterrows():
-                folium.Marker(
-                    location=[row["LATITUDE"], row["LONGITUDE"]],
-                    popup=f"{row['BARANGAY HALL']} - {row['VULNERABILITY']}",
-                    tooltip=row["BARANGAY HALL"],
-                    icon=folium.Icon(color=vulnerability_color(row["VULNERABILITY"]))
-                ).add_to(m)
-
-            st_folium(m, width=1000, height=500)
-        else:
-            st.info("No valid coordinates available for mapping.")
-    else:
-        st.info("Latitude and Longitude columns are required to show the map.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # HIGH RISK TABLE
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("High Vulnerability Barangays")
 
