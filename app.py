@@ -1,34 +1,23 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
-st.set_page_config(
-    page_title="Seismic Vulnerability Records",
-    layout="wide"
-)
+st.set_page_config(page_title="Seismic Vulnerability Records", layout="wide")
 
-# -----------------------------
-# DARK MODE CSS
-# -----------------------------
 st.markdown("""
 <style>
 .stApp {
     background: #0f172a;
     color: #e5e7eb;
 }
-
 .block-container {
     max-width: 1100px;
     padding-top: 2rem;
 }
-
 h1, h2, h3 {
     color: #f8fafc;
 }
-
 .card {
     background: #111827;
     padding: 22px;
@@ -37,7 +26,6 @@ h1, h2, h3 {
     margin-bottom: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
 }
-
 .stButton button {
     background: #2563eb;
     color: white;
@@ -45,7 +33,6 @@ h1, h2, h3 {
     border: none;
     font-weight: 600;
 }
-
 .stButton button:hover {
     background: #1d4ed8;
     color: white;
@@ -57,7 +44,6 @@ h1, h2, h3 {
 # LOAD DATA
 # -----------------------------
 df = pd.read_excel("final_dataset.xlsx")
-
 df.columns = df.columns.astype(str).str.strip().str.upper()
 
 required_cols = ["MUNICIPALITY", "BARANGAY HALL", "VULNERABILITY", "RVS SCORE"]
@@ -71,25 +57,18 @@ if missing:
 df["MUNICIPALITY"] = df["MUNICIPALITY"].astype(str).str.strip().str.upper()
 df["BARANGAY HALL"] = df["BARANGAY HALL"].astype(str).str.strip()
 df["VULNERABILITY"] = df["VULNERABILITY"].astype(str).str.strip()
-
 df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
 
 if "RANK" in df.columns:
     df["RANK"] = pd.to_numeric(df["RANK"], errors="coerce")
 
 # -----------------------------
-# HELPER FUNCTIONS
+# HELPERS
 # -----------------------------
 def get_value(row, col_name):
     return row[col_name] if col_name in row.index else "N/A"
 
-
 def get_image_path(folder_path, barangay_name):
-    """
-    Finds image inside folder by barangay name.
-    Case-insensitive filename matching.
-    Supports jpg, jpeg, png.
-    """
     if not os.path.isdir(folder_path):
         return None
 
@@ -97,44 +76,47 @@ def get_image_path(folder_path, barangay_name):
 
     for file in os.listdir(folder_path):
         name, ext = os.path.splitext(file)
-
         if ext.lower() in [".jpg", ".jpeg", ".png"]:
             if name.strip().lower() == barangay_clean:
                 return os.path.join(folder_path, file)
 
     return None
 
+def horizontal_bar_chart(data, title, xlabel):
+    fig, ax = plt.subplots(figsize=(9, 5))
+    data.plot(kind="barh", ax=ax)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("")
+    ax.bar_label(ax.containers[0], padding=3)
+    ax.grid(axis="x", linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    st.pyplot(fig)
 
 # -----------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR
 # -----------------------------
 st.sidebar.title("Navigation")
+
 st.sidebar.markdown("---")
-
 st.sidebar.markdown("### 📌 Thesis Information")
-
 st.sidebar.markdown("""
 **DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF  
 BARANGAY HALLS IN L.I.S.T.T. AREA**
 
-This system provides a structured database and visualization of seismic vulnerability assessments of barangay halls using Rapid Visual Screening (RVS).
-
-It allows users to:
-- 🔍 Search specific barangay hall records  
-- 📊 View vulnerability analysis and trends  
-- 🏗 Review structural and hazard information  
-- 🖼 Examine photos and structural sketches  
+This system stores, organizes, searches, and visualizes seismic vulnerability records of barangay halls using Rapid Visual Screening (RVS).
 
 **Coverage Area:**
-- La Trinidad  
-- Itogon  
-- Sablan  
-- Tuba  
-- Tublay  
+- La Trinidad
+- Itogon
+- Sablan
+- Tuba
+- Tublay
 """)
+
 page = st.sidebar.radio(
     "Go to",
-    ["🔍 Search Barangay", "📊 Dashboard"]
+    ["🔍 Search Barangay", "📊 Dashboard", "ℹ️ About"]
 )
 
 # ==================================================
@@ -192,9 +174,7 @@ if page == "🔍 Search Barangay":
                 photo_path = get_image_path(photo_folder, selected_barangay)
                 sketch_path = get_image_path(sketch_folder, selected_barangay)
 
-                # SUMMARY
                 st.markdown('<div class="card">', unsafe_allow_html=True)
-
                 c1, c2, c3 = st.columns(3)
 
                 c1.metric("RVS Score", get_value(row, "RVS SCORE"))
@@ -203,7 +183,6 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # GENERAL INFORMATION
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("General Information")
 
@@ -225,14 +204,10 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # HAZARDS
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("Hazards and Irregularities")
 
-                st.write(
-                    "**Geologic Hazards:**",
-                    get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")
-                )
+                st.write("**Geologic Hazards:**", get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)"))
                 st.write("**Adjacency:**", get_value(row, "ADJACENCY"))
                 st.write("**Exterior Falling Hazards:**", get_value(row, "EXTERIOR FALLING HAZARDS"))
                 st.write("**Vertical Irregularity:**", get_value(row, "VERTICAL IRREGULARITY"))
@@ -240,7 +215,6 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # PHOTO AND SKETCH
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("Photo and Sketch of the Structure")
 
@@ -262,7 +236,6 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # CODE CLASSIFICATION
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("Code Classification")
 
@@ -271,7 +244,6 @@ if page == "🔍 Search Barangay":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # RVS RESULT
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.subheader("Rapid Visual Screening Result")
 
@@ -299,7 +271,7 @@ if page == "🔍 Search Barangay":
 elif page == "📊 Dashboard":
 
     st.title("Vulnerability Dashboard")
-    st.caption("Overall vulnerability analysis of barangay halls")
+    st.caption("Panel-friendly summary of seismic vulnerability results")
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
 
@@ -328,26 +300,44 @@ elif page == "📊 Dashboard":
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Vulnerability Distribution")
-    vulnerability_counts = dashboard_df["VULNERABILITY"].value_counts()
-    st.bar_chart(vulnerability_counts)
+
+    vulnerability_counts = dashboard_df["VULNERABILITY"].value_counts().sort_values()
+    horizontal_bar_chart(
+        vulnerability_counts,
+        "Number of Barangay Halls per Vulnerability Level",
+        "Number of Barangay Halls"
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Average RVS Score by Municipality")
+
+    avg_scores = dashboard_df.groupby("MUNICIPALITY")["RVS SCORE"].mean().sort_values()
+    horizontal_bar_chart(
+        avg_scores,
+        "Average RVS Score by Municipality",
+        "Average RVS Score"
+    )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("RVS Score per Barangay")
-    score_chart = dashboard_df[["BARANGAY HALL", "RVS SCORE"]].dropna()
-    score_chart = score_chart.set_index("BARANGAY HALL")
-    st.bar_chart(score_chart)
-    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Vulnerability by Municipality")
-    grouped = (
-        dashboard_df
-        .groupby(["MUNICIPALITY", "VULNERABILITY"])
-        .size()
-        .unstack(fill_value=0)
-    )
-    st.bar_chart(grouped)
+    score_chart = dashboard_df[["BARANGAY HALL", "RVS SCORE"]].dropna()
+    score_chart = score_chart.sort_values("RVS SCORE")
+
+    fig, ax = plt.subplots(figsize=(10, max(5, len(score_chart) * 0.35)))
+    ax.barh(score_chart["BARANGAY HALL"], score_chart["RVS SCORE"])
+    ax.set_title("RVS Score per Barangay Hall", fontsize=14)
+    ax.set_xlabel("RVS Score")
+    ax.set_ylabel("Barangay Hall")
+    ax.bar_label(ax.containers[0], padding=3)
+    ax.grid(axis="x", linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    st.pyplot(fig)
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -375,5 +365,63 @@ elif page == "📊 Dashboard":
         )
     else:
         st.info("No high vulnerability barangays found.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ==================================================
+# PAGE 3: ABOUT
+# ==================================================
+elif page == "ℹ️ About":
+
+    st.title("About the System")
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Thesis Title")
+
+    st.write("""
+    **DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF BARANGAY HALLS IN L.I.S.T.T.  
+    (LA TRINIDAD, ITOGON, SABLAN, TUBA, TUBLAY) AREA USING RAPID VISUAL SCREENING**
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("System Description")
+
+    st.write("""
+    This web-based system is designed to store, manage, search, and visualize seismic vulnerability
+    records of barangay halls within the L.I.S.T.T. area. It uses Rapid Visual Screening (RVS)
+    data to provide users with structured information about each barangay hall, including building
+    characteristics, hazards, irregularities, RVS scores, vulnerability classification, photos,
+    and structural sketches.
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Main Features")
+
+    st.write("""
+    - Search barangay hall records by municipality and barangay
+    - View structural and hazard-related information
+    - Display photos and sketches of barangay hall structures
+    - Analyze vulnerability distribution through readable graphs
+    - Filter dashboard results by municipality
+    - Identify high-vulnerability barangay halls
+    """)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("Coverage Area")
+
+    st.write("""
+    The system covers barangay halls located in:
+    - La Trinidad
+    - Itogon
+    - Sablan
+    - Tuba
+    - Tublay
+    """)
 
     st.markdown("</div>", unsafe_allow_html=True)
