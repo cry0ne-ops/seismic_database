@@ -115,7 +115,28 @@ if "page" not in st.session_state:
 # HELPER FUNCTIONS
 # ==================================================
 def get_value(row, col_name):
-    return row[col_name] if col_name in row.index else "N/A"
+    if col_name not in row.index:
+        return "No Data Recorded"
+
+    value = row[col_name]
+
+    if pd.isna(value):
+        return "No Data Recorded"
+
+    value_str = str(value).strip()
+
+    if value_str.lower() in ["nan", "none", "null", "n/a", "na", ""]:
+        return "No Data Recorded"
+
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+
+    return value
+
+
+def get_metric_value(row, col_name):
+    value = get_value(row, col_name)
+    return "—" if value == "No Data Recorded" else value
 
 
 def get_image_path(folder_path, barangay_name):
@@ -140,7 +161,10 @@ def horizontal_bar_chart(data, title, xlabel):
     ax.set_title(title, fontsize=14)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("")
-    ax.bar_label(ax.containers[0], padding=3)
+
+    if len(ax.containers) > 0:
+        ax.bar_label(ax.containers[0], padding=3)
+
     ax.grid(axis="x", linestyle="--", alpha=0.4)
     plt.tight_layout()
     st.pyplot(fig)
@@ -341,9 +365,9 @@ elif st.session_state.page == "Search":
                 st.markdown('<div class="card">', unsafe_allow_html=True)
 
                 col1, col2, col3 = st.columns(3)
-                col1.metric("RVS Score", get_value(row, "RVS SCORE"))
-                col2.metric("Damage Grade", get_value(row, "GRADE OF DAMAGEABILITY"))
-                col3.metric("Rank", get_value(row, "RANK"))
+                col1.metric("RVS Score", get_metric_value(row, "RVS SCORE"))
+                col2.metric("Damage Grade", get_metric_value(row, "GRADE OF DAMAGEABILITY"))
+                col3.metric("Rank", get_metric_value(row, "RANK"))
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -353,9 +377,9 @@ elif st.session_state.page == "Search":
                 st.write(f"• **Name of Barangay Hall:** {get_value(row, 'BARANGAY HALL')}")
                 st.write(f"• **Municipality:** {get_value(row, 'MUNICIPALITY')}")
 
-                st.write(f"•  No. of Stories: {get_value(row, 'NO. OF STORIES')}")
-                st.write(f"      - Above Grade: {get_value(row, 'ABOVE GRADE')}")
-                st.write(f"      - Below Grade: {get_value(row, 'BELOW GRADE')}")
+                st.write("• **No. of Stories:**")
+                st.write(f"  - Above Grade: {get_value(row, 'ABOVE GRADE')}")
+                st.write(f"  - Below Grade: {get_value(row, 'BELOW GRADE')}")
 
                 st.write(f"• **Year Built:** {get_value(row, 'YEAR BUILT')}")
                 st.write(f"• **Total Floor Area (SQ. FT.):** {get_value(row, 'TOTAL FLOOR AREA (SQ. FT.)')}")
@@ -386,14 +410,14 @@ elif st.session_state.page == "Search":
                     if photo_path:
                         st.image(photo_path, use_container_width=True)
                     else:
-                        st.info("No photo available.")
+                        st.info("No photo uploaded for this barangay hall.")
 
                 with col2:
                     st.markdown("**Sketch**")
                     if sketch_path:
                         st.image(sketch_path, use_container_width=True)
                     else:
-                        st.info("No sketch available.")
+                        st.info("No structural sketch uploaded for this barangay hall.")
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -460,7 +484,9 @@ elif st.session_state.page == "Dashboard":
     col1, col2, col3 = st.columns(3)
 
     col1.metric("Total Barangays", len(dashboard_df))
-    col2.metric("Average RVS Score", round(dashboard_df["RVS SCORE"].mean(), 2))
+
+    avg_rvs = dashboard_df["RVS SCORE"].mean()
+    col2.metric("Average RVS Score", "—" if pd.isna(avg_rvs) else round(avg_rvs, 2))
 
     high_count = dashboard_df[
         dashboard_df["VULNERABILITY"].str.contains("High", case=False, na=False)
@@ -502,15 +528,18 @@ elif st.session_state.page == "Dashboard":
     score_chart = dashboard_df[["BARANGAY HALL", "RVS SCORE"]].dropna()
     score_chart = score_chart.sort_values("RVS SCORE")
 
-    fig, ax = plt.subplots(figsize=(10, max(5, len(score_chart) * 0.35)))
-    ax.barh(score_chart["BARANGAY HALL"], score_chart["RVS SCORE"])
-    ax.set_title("RVS Score per Barangay Hall", fontsize=14)
-    ax.set_xlabel("RVS Score")
-    ax.set_ylabel("Barangay Hall")
-    ax.bar_label(ax.containers[0], padding=3)
-    ax.grid(axis="x", linestyle="--", alpha=0.4)
-    plt.tight_layout()
-    st.pyplot(fig)
+    if score_chart.empty:
+        st.info("No RVS score data available for this selection.")
+    else:
+        fig, ax = plt.subplots(figsize=(10, max(5, len(score_chart) * 0.35)))
+        ax.barh(score_chart["BARANGAY HALL"], score_chart["RVS SCORE"])
+        ax.set_title("RVS Score per Barangay Hall", fontsize=14)
+        ax.set_xlabel("RVS Score")
+        ax.set_ylabel("Barangay Hall")
+        ax.bar_label(ax.containers[0], padding=3)
+        ax.grid(axis="x", linestyle="--", alpha=0.4)
+        plt.tight_layout()
+        st.pyplot(fig)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
