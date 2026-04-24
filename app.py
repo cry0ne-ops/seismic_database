@@ -5,61 +5,26 @@ import os
 # -----------------------------
 # PAGE CONFIG
 # -----------------------------
-st.set_page_config(
-    page_title="Seismic Vulnerability Records",
-    layout="wide"
-)
+st.set_page_config(page_title="Seismic System", layout="wide")
 
 # -----------------------------
-# DARK MODE CSS
+# DARK MODE
 # -----------------------------
 st.markdown("""
 <style>
-.stApp {
-    background: #0f172a;
-    color: #e5e7eb;
-}
-
-.block-container {
-    max-width: 1050px;
-    padding-top: 2rem;
-}
-
-h1, h2, h3 {
-    color: #f8fafc;
-}
-
-h1 {
-    text-align: center;
-    font-weight: 700;
-}
-
-.subtitle {
-    text-align: center;
-    color: #94a3b8;
-    margin-bottom: 2rem;
-}
-
+.stApp {background: #0f172a; color: #e5e7eb;}
+.block-container {max-width: 1050px;}
 .card {
     background: #111827;
-    padding: 22px;
-    border-radius: 14px;
+    padding: 20px;
+    border-radius: 12px;
     border: 1px solid #334155;
-    margin-bottom: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    margin-bottom: 15px;
 }
-
 .stButton button {
     background: #2563eb;
     color: white;
-    border-radius: 10px;
-    border: none;
-    font-weight: 600;
-}
-
-.stButton button:hover {
-    background: #1d4ed8;
-    color: white;
+    border-radius: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -68,242 +33,146 @@ h1 {
 # LOAD DATA
 # -----------------------------
 df = pd.read_excel("final_dataset.xlsx")
-
 df.columns = df.columns.str.strip().str.upper()
 
-df["MUNICIPALITY"] = df["MUNICIPALITY"].astype(str).str.strip().str.upper()
-df["BARANGAY HALL"] = df["BARANGAY HALL"].astype(str).str.strip().str.upper()
-df["VULNERABILITY"] = df["VULNERABILITY"].astype(str).str.strip()
+df["MUNICIPALITY"] = df["MUNICIPALITY"].str.strip().str.upper()
+df["BARANGAY HALL"] = df["BARANGAY HALL"].str.strip().str.upper()
+df["VULNERABILITY"] = df["VULNERABILITY"].astype(str)
 
 df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
 df["RANK"] = pd.to_numeric(df["RANK"], errors="coerce")
 
 # -----------------------------
-# IMAGE DETECTION FUNCTION
+# IMAGE FUNCTION
 # -----------------------------
-def get_image_path(base_path):
-    for ext in [".jpg", ".png", ".jpeg"]:
-        path = base_path + ext
-        if os.path.exists(path):
-            return path
+def get_image_path(base):
+    for ext in [".jpg", ".png"]:
+        if os.path.exists(base + ext):
+            return base + ext
     return None
 
 # -----------------------------
-# HEADER
+# SIDEBAR NAVIGATION
 # -----------------------------
-st.title("Seismic Vulnerability Records")
-st.markdown(
-    '<div class="subtitle">Barangay Hall Assessment System</div>',
-    unsafe_allow_html=True
+st.sidebar.title("Navigation")
+
+page = st.sidebar.radio(
+    "Go to",
+    ["🔍 Search Barangay", "📊 Dashboard"]
 )
 
-# -----------------------------
-# SEARCH SECTION
-# -----------------------------
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("Search Barangay Record")
+# =============================
+# PAGE 1: SEARCH
+# =============================
+if page == "🔍 Search Barangay":
 
-col1, col2, col3 = st.columns(3)
+    st.title("Seismic Vulnerability Records")
+    st.caption("Barangay Hall Assessment System")
 
-with col1:
-    municipalities = sorted(df["MUNICIPALITY"].dropna().unique())
-    municipality = st.selectbox("Municipality", ["Select"] + municipalities)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
 
-with col2:
-    if municipality != "Select":
-        barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].dropna().unique()
-    else:
-        barangays = []
+    col1, col2, col3 = st.columns(3)
 
-    barangay = st.selectbox("Barangay", ["Select"] + sorted(barangays))
+    with col1:
+        municipalities = sorted(df["MUNICIPALITY"].unique())
+        municipality = st.selectbox("Municipality", ["Select"] + municipalities)
 
-with col3:
-    st.markdown("<br>", unsafe_allow_html=True)
-    search = st.button("Search", use_container_width=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# -----------------------------
-# VULNERABILITY ANALYSIS DASHBOARD
-# -----------------------------
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("Vulnerability Overview Dashboard")
-
-graph_municipality = st.selectbox(
-    "Filter Graphs by Municipality",
-    ["All"] + sorted(df["MUNICIPALITY"].dropna().unique())
-)
-
-if graph_municipality != "All":
-    graph_df = df[df["MUNICIPALITY"] == graph_municipality]
-else:
-    graph_df = df.copy()
-
-col1, col2, col3 = st.columns(3)
-
-col1.metric("Total Barangays", len(graph_df))
-col2.metric("Average RVS Score", round(graph_df["RVS SCORE"].mean(), 2))
-col3.metric("Municipalities Covered", graph_df["MUNICIPALITY"].nunique())
-
-st.markdown("### Overall Vulnerability Distribution")
-vuln_counts = graph_df["VULNERABILITY"].value_counts()
-st.bar_chart(vuln_counts)
-
-st.markdown("### RVS Score per Barangay")
-score_chart = graph_df[["BARANGAY HALL", "RVS SCORE"]].dropna()
-score_chart = score_chart.set_index("BARANGAY HALL")
-st.bar_chart(score_chart)
-
-st.markdown("### Vulnerability by Municipality")
-grouped = graph_df.groupby(["MUNICIPALITY", "VULNERABILITY"]).size().unstack(fill_value=0)
-st.bar_chart(grouped)
-
-st.markdown("### High Vulnerability Barangays")
-high_risk = graph_df[graph_df["VULNERABILITY"].str.contains("High", case=False, na=False)]
-
-if not high_risk.empty:
-    st.dataframe(
-        high_risk[[
-            "BARANGAY HALL",
-            "MUNICIPALITY",
-            "RVS SCORE",
-            "VULNERABILITY",
-            "GRADE OF DAMAGEABILITY",
-            "RANK"
-        ]].sort_values(by="RANK"),
-        use_container_width=True
-    )
-else:
-    st.info("No high vulnerability barangays found.")
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# -----------------------------
-# RESULT SECTION
-# -----------------------------
-if search:
-
-    if municipality == "Select" or barangay == "Select":
-        st.warning("Please select both Municipality and Barangay.")
-    else:
-        result = df[
-            (df["MUNICIPALITY"] == municipality) &
-            (df["BARANGAY HALL"] == barangay)
-        ]
-
-        if result.empty:
-            st.error("No data found.")
+    with col2:
+        if municipality != "Select":
+            barangays = df[df["MUNICIPALITY"] == municipality]["BARANGAY HALL"].unique()
         else:
-            row = result.iloc[0]
+            barangays = []
 
-            selected_municipality = str(row["MUNICIPALITY"]).strip().upper()
-            selected_barangay = str(row["BARANGAY HALL"]).strip().upper()
+        barangay = st.selectbox("Barangay", ["Select"] + list(barangays))
 
-            photo_path = get_image_path(
-                f"images/{selected_municipality} Pics/{selected_barangay}"
-            )
+    with col3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        search = st.button("Search", use_container_width=True)
 
-            sketch_path = get_image_path(
-                f"images/{selected_municipality} Sketch/{selected_barangay}"
-            )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if search:
+
+        if municipality == "Select" or barangay == "Select":
+            st.warning("Select both fields")
+        else:
+            row = df[
+                (df["MUNICIPALITY"] == municipality) &
+                (df["BARANGAY HALL"] == barangay)
+            ].iloc[0]
+
+            muni = row["MUNICIPALITY"]
+            brgy = row["BARANGAY HALL"]
+
+            photo = get_image_path(f"images/{muni} Pics/{brgy}")
+            sketch = get_image_path(f"images/{muni} Sketch/{brgy}")
 
             # SUMMARY
             st.markdown('<div class="card">', unsafe_allow_html=True)
 
-            col1, col2, col3 = st.columns(3)
-
-            col1.metric("RVS Score", row.get("RVS SCORE", "N/A"))
-            col2.metric("Damage Grade", row.get("GRADE OF DAMAGEABILITY", "N/A"))
-            col3.metric("Rank", row.get("RANK", "N/A"))
+            c1, c2, c3 = st.columns(3)
+            c1.metric("RVS Score", row["RVS SCORE"])
+            c2.metric("Damage Grade", row["GRADE OF DAMAGEABILITY"])
+            c3.metric("Rank", row["RANK"])
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # GENERAL INFORMATION
+            # IMAGES
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("General Information")
+            st.subheader("Photo & Sketch")
 
             col1, col2 = st.columns(2)
 
-            with col1:
-                st.write("**Code:**", row.get("CODE", "N/A"))
-                st.write("**Barangay Hall:**", row.get("BARANGAY HALL", "N/A"))
-                st.write("**Municipality:**", row.get("MUNICIPALITY", "N/A"))
-                st.write("**Year Built:**", row.get("YEAR BUILT", "N/A"))
-                st.write("**Occupancy:**", row.get("OCCUPANCY", "N/A"))
-
-            with col2:
-                st.write("**Above Grade Stories:**", row.get("ABOVE GRADE", "N/A"))
-                st.write("**Below Grade Stories:**", row.get("BELOW GRADE", "N/A"))
-                st.write("**Total Floor Area:**", row.get("TOTAL FLOOR AREA (SQ. FT.)", "N/A"))
-                st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
-                st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # HAZARDS
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Hazards and Irregularities")
-
-            st.write(
-                "**Geologic Hazards:**",
-                row.get("GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)", "N/A")
-            )
-            st.write("**Adjacency:**", row.get("ADJACENCY", "N/A"))
-            st.write("**Exterior Falling Hazards:**", row.get("EXTERIOR FALLING HAZARDS", "N/A"))
-            st.write("**Vertical Irregularity:**", row.get("VERTICAL IRREGULARITY", "N/A"))
-            st.write("**Plan Irregularity:**", row.get("PLAN IRREGULARITY", "N/A"))
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # PHOTO AND SKETCH
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Photo and Sketch of the Structure")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.markdown("**Photo**")
-                if photo_path:
-                    st.image(photo_path, use_container_width=True)
-                else:
-                    st.info("No photo available.")
-
-            with col2:
-                st.markdown("**Sketch**")
-                if sketch_path:
-                    st.image(sketch_path, use_container_width=True)
-                else:
-                    st.info("No sketch available.")
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # CODE CLASSIFICATION
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Code Classification")
-
-            st.write("**Pre-Code Before 1972:**", row.get("PRE-CODE (BEFORE 1972)", "N/A"))
-            st.write("**Post-Benchmark After 1972:**", row.get("POST-BENCHMARK (AFTER 1972)", "N/A"))
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # RVS RESULT
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Rapid Visual Screening Result")
-
-            vulnerability = str(row.get("VULNERABILITY", "N/A")).strip()
-
-            st.write("**Score:**", row.get("RVS SCORE", "N/A"))
-            st.write("**Vulnerability:**", vulnerability)
-            st.write("**Interpretation:**", row.get("INTERPRETATION", "N/A"))
-            st.write("**Grade of Damageability:**", row.get("GRADE OF DAMAGEABILITY", "N/A"))
-
-            if "Low" in vulnerability:
-                st.success(f"🟢 {vulnerability}")
-            elif "Moderate" in vulnerability:
-                st.warning(f"🟡 {vulnerability}")
-            elif "High" in vulnerability:
-                st.error(f"🔴 {vulnerability}")
+            if photo:
+                col1.image(photo)
             else:
-                st.info(vulnerability)
+                col1.info("No photo")
+
+            if sketch:
+                col2.image(sketch)
+            else:
+                col2.info("No sketch")
 
             st.markdown('</div>', unsafe_allow_html=True)
+
+# =============================
+# PAGE 2: DASHBOARD
+# =============================
+elif page == "📊 Dashboard":
+
+    st.title("Vulnerability Dashboard")
+
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    # FILTER
+    selected_muni = st.selectbox(
+        "Filter by Municipality",
+        ["All"] + sorted(df["MUNICIPALITY"].unique())
+    )
+
+    if selected_muni != "All":
+        data = df[df["MUNICIPALITY"] == selected_muni]
+    else:
+        data = df.copy()
+
+    # METRICS
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total Barangays", len(data))
+    c2.metric("Avg RVS", round(data["RVS SCORE"].mean(), 2))
+    c3.metric("High Risk", len(data[data["VULNERABILITY"].str.contains("High")]))
+
+    # GRAPH 1
+    st.subheader("Vulnerability Distribution")
+    st.bar_chart(data["VULNERABILITY"].value_counts())
+
+    # GRAPH 2
+    st.subheader("RVS Score per Barangay")
+    chart = data.set_index("BARANGAY HALL")["RVS SCORE"]
+    st.bar_chart(chart)
+
+    # GRAPH 3
+    st.subheader("By Municipality")
+    grouped = data.groupby(["MUNICIPALITY", "VULNERABILITY"]).size().unstack(fill_value=0)
+    st.bar_chart(grouped)
+
+    st.markdown('</div>', unsafe_allow_html=True)
