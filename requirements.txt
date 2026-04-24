@@ -4,3 +4,5 @@ openpyxl
 pillow
 matplotlib
 reportlab
+folium
+streamlit-folium
