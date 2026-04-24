@@ -177,56 +177,86 @@ def horizontal_bar_chart(data, title, xlabel):
     st.pyplot(fig)
 
 
-def generate_pdf(row):
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet
+
+def generate_pdf(row, photo_path=None, sketch_path=None):
+
     buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
 
-    y = height - 50
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
 
-    pdf.setFont("Helvetica-Bold", 15)
-    pdf.drawString(50, y, "Seismic Vulnerability Barangay Hall Report")
+    elements = []
 
-    y -= 30
-    pdf.setFont("Helvetica", 10)
+    # TITLE
+    elements.append(Paragraph(
+        "<b>Seismic Vulnerability Barangay Hall Report</b>",
+        styles['Title']
+    ))
+    elements.append(Spacer(1, 12))
 
-    fields = [
-        ("Name of Barangay Hall", get_value(row, "BARANGAY HALL")),
-        ("Municipality", get_value(row, "MUNICIPALITY")),
-        ("Above Grade Stories", get_value(row, "ABOVE GRADE")),
-        ("Below Grade Stories", get_value(row, "BELOW GRADE")),
-        ("Year Built", get_value(row, "YEAR BUILT")),
-        ("Total Floor Area (SQ. FT.)", get_value(row, "TOTAL FLOOR AREA (SQ. FT.)")),
-        ("Occupancy", get_value(row, "OCCUPANCY")),
-        ("Soil Type", get_value(row, "SOIL TYPE")),
-        ("FEMA Building Type", get_value(row, "BUILDING TYPE")),
-        ("Geologic Hazards", get_value(row, "GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)")),
-        ("Exterior Falling Hazards", get_value(row, "EXTERIOR FALLING HAZARDS")),
-        ("Plan Irregularities", get_value(row, "PLAN IRREGULARITY")),
-        ("Vertical Irregularities", get_value(row, "VERTICAL IRREGULARITY")),
-        ("Adjacency", get_value(row, "ADJACENCY")),
-        ("RVS Score", get_value(row, "RVS SCORE")),
-        ("Vulnerability", get_value(row, "VULNERABILITY")),
-        ("Interpretation", get_value(row, "INTERPRETATION")),
-        ("Grade of Damageability", get_value(row, "GRADE OF DAMAGEABILITY")),
-        ("Rank", get_value(row, "RANK")),
-    ]
+    # BASIC INFO
+    elements.append(Paragraph(
+        f"<b>Barangay Hall:</b> {get_value(row, 'BARANGAY HALL')}",
+        styles['Normal']
+    ))
+    elements.append(Paragraph(
+        f"<b>Municipality:</b> {get_value(row, 'MUNICIPALITY')}",
+        styles['Normal']
+    ))
+    elements.append(Spacer(1, 10))
 
-    for label, value in fields:
-        if y < 70:
-            pdf.showPage()
-            y = height - 50
+    # RVS RESULT
+    elements.append(Paragraph(
+        f"<b>RVS Score:</b> {get_value(row, 'RVS SCORE')}",
+        styles['Normal']
+    ))
+    elements.append(Paragraph(
+        f"<b>Vulnerability:</b> {get_value(row, 'VULNERABILITY')}",
+        styles['Normal']
+    ))
+    elements.append(Paragraph(
+        f"<b>Damage Grade:</b> {get_value(row, 'GRADE OF DAMAGEABILITY')}",
+        styles['Normal']
+    ))
+    elements.append(Spacer(1, 12))
 
-        pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(50, y, f"{label}:")
-        pdf.setFont("Helvetica", 10)
-        pdf.drawString(210, y, str(value))
-        y -= 18
+    # HAZARDS
+    elements.append(Paragraph("<b>Hazards and Irregularities</b>", styles['Heading2']))
+    elements.append(Paragraph(
+        f"Geologic Hazard: {get_value(row, 'GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)')}",
+        styles['Normal']
+    ))
+    elements.append(Paragraph(
+        f"Exterior Falling Hazards: {get_value(row, 'EXTERIOR FALLING HAZARDS')}",
+        styles['Normal']
+    ))
+    elements.append(Spacer(1, 12))
 
-    pdf.save()
+    # -----------------------------
+    # ADD PHOTO
+    # -----------------------------
+    if photo_path and os.path.exists(photo_path):
+        elements.append(Paragraph("<b>Photo</b>", styles['Heading3']))
+        img = Image(photo_path, width=250, height=180)
+        elements.append(img)
+        elements.append(Spacer(1, 12))
+
+    # -----------------------------
+    # ADD SKETCH
+    # -----------------------------
+    if sketch_path and os.path.exists(sketch_path):
+        elements.append(Paragraph("<b>Sketch</b>", styles['Heading3']))
+        img2 = Image(sketch_path, width=250, height=180)
+        elements.append(img2)
+        elements.append(Spacer(1, 12))
+
+    # BUILD PDF
+    doc.build(elements)
+
     buffer.seek(0)
     return buffer
-
 # ==================================================
 # SIDEBAR
 # ==================================================
