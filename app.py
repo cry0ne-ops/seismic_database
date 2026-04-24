@@ -109,7 +109,29 @@ def get_image_path(folder_path, barangay_name):
 # SIDEBAR NAVIGATION
 # -----------------------------
 st.sidebar.title("Navigation")
+st.sidebar.markdown("---")
 
+st.sidebar.markdown("### 📌 Thesis Information")
+
+st.sidebar.markdown("""
+**DATABASE DEVELOPMENT ON SEISMIC VULNERABILITY OF  
+BARANGAY HALLS IN L.I.S.T.T. AREA**
+
+This system provides a structured database and visualization of seismic vulnerability assessments of barangay halls using Rapid Visual Screening (RVS).
+
+It allows users to:
+- 🔍 Search specific barangay hall records  
+- 📊 View vulnerability analysis and trends  
+- 🏗 Review structural and hazard information  
+- 🖼 Examine photos and structural sketches  
+
+**Coverage Area:**
+- La Trinidad  
+- Itogon  
+- Sablan  
+- Tuba  
+- Tublay  
+""")
 page = st.sidebar.radio(
     "Go to",
     ["🔍 Search Barangay", "📊 Dashboard"]
