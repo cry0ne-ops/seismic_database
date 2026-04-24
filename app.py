@@ -1,24 +1,17 @@
 import streamlit as st
 import pandas as pd
-
-# -----------------------------
-# LOAD DATA (SAFE FOR CLOUD)
-# -----------------------------
-df = pd.read_excel("final_dataset.xlsx")
-
-# Fix column names (VERY IMPORTANT)
-df.columns = df.columns.str.strip().str.upper()
-
-# Convert numeric safely
-df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
+import os
 
 # -----------------------------
 # PAGE CONFIG
 # -----------------------------
-st.set_page_config(page_title="Seismic System", layout="wide")
+st.set_page_config(
+    page_title="Seismic Vulnerability Records",
+    layout="wide"
+)
 
 # -----------------------------
-# SIMPLE CLEAN UI
+# DARK MODE CSS
 # -----------------------------
 st.markdown("""
 <style>
@@ -28,7 +21,7 @@ st.markdown("""
 }
 
 .block-container {
-    max-width: 900px;
+    max-width: 950px;
     padding-top: 2rem;
 }
 
@@ -56,31 +49,11 @@ h1 {
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
 }
 
-div[data-testid="stMetric"] {
-    background: #1e293b;
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #334155;
-}
-
-div[data-testid="stMetricLabel"] {
-    color: #94a3b8;
-}
-
-div[data-testid="stMetricValue"] {
-    color: #f8fafc;
-}
-
-.stSelectbox label {
-    color: #e5e7eb !important;
-}
-
 .stButton button {
     background: #2563eb;
     color: white;
     border-radius: 10px;
     border: none;
-    padding: 0.6rem 1rem;
     font-weight: 600;
 }
 
@@ -88,22 +61,52 @@ div[data-testid="stMetricValue"] {
     background: #1d4ed8;
     color: white;
 }
-
-[data-testid="stMarkdownContainer"] {
-    color: #e5e7eb;
-}
 </style>
 """, unsafe_allow_html=True)
+
+# -----------------------------
+# LOAD DATA
+# -----------------------------
+df = pd.read_excel("final_dataset.xlsx")
+
+# Clean columns
+df.columns = df.columns.str.strip().str.upper()
+
+# Clean important values
+df["MUNICIPALITY"] = df["MUNICIPALITY"].astype(str).str.strip().str.upper()
+df["BARANGAY HALL"] = df["BARANGAY HALL"].astype(str).str.strip().str.upper()
+
+# Convert RVS score
+df["RVS SCORE"] = pd.to_numeric(df["RVS SCORE"], errors="coerce")
+
+# -----------------------------
+# IMAGE DETECTION FUNCTION
+# -----------------------------
+def get_image_path(base_path):
+    if os.path.exists(base_path + ".jpg"):
+        return base_path + ".jpg"
+    elif os.path.exists(base_path + ".png"):
+        return base_path + ".png"
+    elif os.path.exists(base_path + ".jpeg"):
+        return base_path + ".jpeg"
+    else:
+        return None
 
 # -----------------------------
 # HEADER
 # -----------------------------
 st.title("Seismic Vulnerability Records")
-st.markdown('<div class="subtitle">Barangay Hall Assessment System</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="subtitle">Barangay Hall Assessment System</div>',
+    unsafe_allow_html=True
+)
 
 # -----------------------------
 # SEARCH SECTION
 # -----------------------------
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("Search Barangay Record")
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -116,11 +119,13 @@ with col2:
     else:
         barangays = []
 
-    barangay = st.selectbox("Barangay", ["Select"] + list(barangays))
+    barangay = st.selectbox("Barangay", ["Select"] + sorted(barangays))
 
 with col3:
     st.markdown("<br>", unsafe_allow_html=True)
     search = st.button("Search", use_container_width=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------
 # RESULT SECTION
@@ -128,7 +133,7 @@ with col3:
 if search:
 
     if municipality == "Select" or barangay == "Select":
-        st.warning("⚠️ Please select both Municipality and Barangay.")
+        st.warning("Please select both Municipality and Barangay.")
     else:
         result = df[
             (df["MUNICIPALITY"] == municipality) &
@@ -139,6 +144,18 @@ if search:
             st.error("No data found.")
         else:
             row = result.iloc[0]
+
+            # Image paths
+            selected_municipality = str(row["MUNICIPALITY"]).strip().upper()
+            selected_barangay = str(row["BARANGAY HALL"]).strip().upper()
+
+            photo_path = get_image_path(
+                f"images/{selected_municipality} Pics/{selected_barangay}"
+            )
+
+            sketch_path = get_image_path(
+                f"images/{selected_municipality} Sketch/{selected_barangay}"
+            )
 
             # -----------------------------
             # SUMMARY
@@ -154,43 +171,67 @@ if search:
             st.markdown('</div>', unsafe_allow_html=True)
 
             # -----------------------------
-            # GENERAL INFO
+            # GENERAL INFORMATION
             # -----------------------------
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("General Information")
 
-            st.write("**Barangay Hall:**", row.get("BARANGAY HALL", "N/A"))
-            st.write("**Municipality:**", row.get("MUNICIPALITY", "N/A"))
-            st.write("**Year Built:**", row.get("YEAR BUILT", "N/A"))
-            st.write("**Total Floor Area:**", row.get("TOTAL FLOOR AREA (SQ. FT.)", "N/A"))
-            st.write("**Occupancy:**", row.get("OCCUPANCY", "N/A"))
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.write("**Code:**", row.get("CODE", "N/A"))
+                st.write("**Barangay Hall:**", row.get("BARANGAY HALL", "N/A"))
+                st.write("**Municipality:**", row.get("MUNICIPALITY", "N/A"))
+                st.write("**Year Built:**", row.get("YEAR BUILT", "N/A"))
+                st.write("**Occupancy:**", row.get("OCCUPANCY", "N/A"))
+
+            with col2:
+                st.write("**Above Grade Stories:**", row.get("ABOVE GRADE", "N/A"))
+                st.write("**Below Grade Stories:**", row.get("BELOW GRADE", "N/A"))
+                st.write("**Total Floor Area:**", row.get("TOTAL FLOOR AREA (SQ. FT.)", "N/A"))
+                st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
+                st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
 
             st.markdown('</div>', unsafe_allow_html=True)
 
             # -----------------------------
-            # STRUCTURAL INFO
-            # -----------------------------
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Structural Information")
-
-            st.write("**Stories Above Grade:**", row.get("ABOVE GRADE", "N/A"))
-            st.write("**Stories Below Grade:**", row.get("BELOW GRADE", "N/A"))
-            st.write("**Soil Type:**", row.get("SOIL TYPE", "N/A"))
-            st.write("**Building Type:**", row.get("BUILDING TYPE", "N/A"))
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # -----------------------------
-            # HAZARDS
+            # HAZARDS AND IRREGULARITIES
             # -----------------------------
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("Hazards and Irregularities")
 
-            st.write("**Geologic Hazards:**", row.get("GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)", "N/A"))
-            st.write("**Exterior Falling Hazards:**", row.get("EXTERIOR FALLING HAZARDS", "N/A"))
-            st.write("**Plan Irregularity:**", row.get("PLAN IRREGULARITY", "N/A"))
-            st.write("**Vertical Irregularity:**", row.get("VERTICAL IRREGULARITY", "N/A"))
+            st.write(
+                "**Geologic Hazards:**",
+                row.get("GEOLOGIC HAZARD (GEOANALYTICS PH & HAZARD HUNTER PH)", "N/A")
+            )
             st.write("**Adjacency:**", row.get("ADJACENCY", "N/A"))
+            st.write("**Exterior Falling Hazards:**", row.get("EXTERIOR FALLING HAZARDS", "N/A"))
+            st.write("**Vertical Irregularity:**", row.get("VERTICAL IRREGULARITY", "N/A"))
+            st.write("**Plan Irregularity:**", row.get("PLAN IRREGULARITY", "N/A"))
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # -----------------------------
+            # PHOTO AND SKETCH
+            # -----------------------------
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("Photo and Sketch of the Structure")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("**Photo**")
+                if photo_path:
+                    st.image(photo_path, use_container_width=True)
+                else:
+                    st.info("No photo available.")
+
+            with col2:
+                st.markdown("**Sketch**")
+                if sketch_path:
+                    st.image(sketch_path, use_container_width=True)
+                else:
+                    st.info("No sketch available.")
 
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -200,8 +241,8 @@ if search:
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("Code Classification")
 
-            st.write("**Pre-Code (Before 1972):**", row.get("PRE-CODE (BEFORE 1972)", "N/A"))
-            st.write("**Post-Benchmark (After 1972):**", row.get("POST-BENCHMARK (AFTER 1972)", "N/A"))
+            st.write("**Pre-Code Before 1972:**", row.get("PRE-CODE (BEFORE 1972)", "N/A"))
+            st.write("**Post-Benchmark After 1972:**", row.get("POST-BENCHMARK (AFTER 1972)", "N/A"))
 
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -209,18 +250,22 @@ if search:
             # RVS RESULT
             # -----------------------------
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.subheader("Assessment Result")
+            st.subheader("Rapid Visual Screening Result")
 
-            vulnerability = str(row.get("VULNERABILITY", "N/A"))
+            vulnerability = str(row.get("VULNERABILITY", "N/A")).strip()
 
+            st.write("**Score:**", row.get("RVS SCORE", "N/A"))
+            st.write("**Vulnerability:**", vulnerability)
             st.write("**Interpretation:**", row.get("INTERPRETATION", "N/A"))
-            st.write("**Damageability Grade:**", row.get("GRADE OF DAMAGEABILITY", "N/A"))
+            st.write("**Grade of Damageability:**", row.get("GRADE OF DAMAGEABILITY", "N/A"))
 
             if "Low" in vulnerability:
                 st.success(f"🟢 {vulnerability}")
             elif "Moderate" in vulnerability:
                 st.warning(f"🟡 {vulnerability}")
-            else:
+            elif "High" in vulnerability:
                 st.error(f"🔴 {vulnerability}")
+            else:
+                st.info(vulnerability)
 
             st.markdown('</div>', unsafe_allow_html=True)
