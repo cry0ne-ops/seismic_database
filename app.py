@@ -429,7 +429,7 @@ elif st.session_state.page == "Search":
                 st.write(f"• **Name of Barangay Hall:** {get_value(row, 'BARANGAY HALL')}")
                 st.write(f"• **Municipality:** {get_value(row, 'MUNICIPALITY')}")
 
-                st.write("• **No. of Stories:**")
+                st.write(f"• No. of Stories: {get_value(row, 'NO. OF STORIES')}")
                 st.write(f"  - Above Grade: {get_value(row, 'ABOVE GRADE')}")
                 st.write(f"  - Below Grade: {get_value(row, 'BELOW GRADE')}")
 
